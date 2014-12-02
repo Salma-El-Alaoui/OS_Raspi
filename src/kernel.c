@@ -1,10 +1,10 @@
-#include "collaborative-scheduler/hw.h"
-#include "collaborative-scheduler/sched.h"
+#include "preemptive-scheduler/hw.h"
+#include "preemptive-scheduler/sched.h"
 #include <stdlib.h>
 void funcA()
 {
 	int cptA = 0;
-	while (cptA<1) {
+	while (1) {
 	cptA ++;
 	ctx_switch();
 	}

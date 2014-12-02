@@ -4,7 +4,7 @@ CFLAGS = -Wall -nostdlib -fomit-frame-pointer -mno-apcs-frame -nostartfiles -ffr
 ASFLAGS = -g -march=armv6z
 
 C_FILES=kernel.c
-SCHEDULER_FILES = $(addprefix collaborative-scheduler/,phyAlloc.c hw.c sched.c)
+SCHEDULER_FILES = $(addprefix preemptive-scheduler/,phyAlloc.c hw.c sched.c)
 C_FILES+= $(SCHEDULER_FILES)
 AS_FILES=vectors.s
 
