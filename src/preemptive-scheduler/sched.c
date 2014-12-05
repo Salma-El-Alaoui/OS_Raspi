@@ -13,13 +13,12 @@ void init_pcb(struct pcb_s * pcb,func_t f, void* args, unsigned int stack_size)
 	pcb->stack_pointer = pcb->stack_base + stack_size - sizeof(int);
 	
 	// On stocke CPRS, 13 veut dire mode system
-	(*(unsigned int*)pcb->stack_pointer) = 0x13;
+	(*(unsigned int*)pcb->stack_pointer) = 0x53;
 	// On stocke LR
 	pcb->stack_pointer += -sizeof(int);
 	(*(unsigned int*)pcb->stack_pointer) = &start_current_process;
-
-	// On dépile 13 registres au premier switch réel, on se décale/remonte dans la pile de 13 cases	
-	pcb->stack_pointer += -13*sizeof(int);
+	// On dépile 13 registres au premier switch réel, on se décale/remonte dans la pile de 14 cases	
+	pcb->stack_pointer += -14*sizeof(int);
 	pcb->stack_size = stack_size;
 	
 	pcb->f=f;
@@ -36,11 +35,14 @@ void create_process(func_t f, void* args, unsigned int stack_size)
 	{
 		current_pcb = pcb;
 		pcb->pcbNext = pcb;
+		pcb->pcbPrevious = pcb;
 	}
 	else
 	{
-		pcb->pcbNext = current_pcb->pcbNext;
-		current_pcb->pcbNext = pcb;
+		pcb->pcbNext = current_pcb;
+		pcb->pcbPrevious = current_pcb->pcbPrevious;
+		current_pcb->pcbPrevious->pcbNext=pcb;
+		current_pcb->pcbPrevious = pcb;
 	}
 	
 	init_pcb(pcb,f,args,stack_size);
@@ -66,7 +68,7 @@ void elect()
 		}*/
 		pcb_s *old_pcb = current_pcb->pcbNext;	
 		current_pcb->pcbNext = old_pcb->pcbNext;
-	 
+		current_pcb->pcbNext->pcbPrevious = current_pcb;
 		phyAlloc_free((void *)old_pcb->stack_base, old_pcb->stack_size);
 		phyAlloc_free(old_pcb, sizeof(pcb_s));
 	}
