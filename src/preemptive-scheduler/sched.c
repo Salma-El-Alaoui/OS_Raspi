@@ -6,6 +6,15 @@
 struct pcb_s * current_pcb = NULL;
 pcb_s * firstTime_pcb;
 
+void start_current_process()
+{
+	current_pcb->etatP= RUNNING;
+	current_pcb->f(current_pcb->args);
+	current_pcb->etatP = TERMINATED;
+	while(1);
+    //ctx_switch();
+}
+
 void init_pcb(struct pcb_s * pcb,func_t f, void* args, unsigned int stack_size)
 {
 	pcb->instruct_address = (unsigned int) &start_current_process;
@@ -18,7 +27,7 @@ void init_pcb(struct pcb_s * pcb,func_t f, void* args, unsigned int stack_size)
 	pcb->stack_pointer += -sizeof(int);
 	(*(unsigned int*)pcb->stack_pointer) = &start_current_process;
 	// On dépile 13 registres au premier switch réel, on se décale/remonte dans la pile de 14 cases	
-	pcb->stack_pointer += -14*sizeof(int);
+	pcb->stack_pointer += -13*sizeof(int);
 	pcb->stack_size = stack_size;
 	
 	pcb->f=f;
@@ -48,31 +57,35 @@ void create_process(func_t f, void* args, unsigned int stack_size)
 	init_pcb(pcb,f,args,stack_size);
 }
 
-void start_current_process()
-{
-	current_pcb->etatP= RUNNING;
-	current_pcb->f(current_pcb->args);
-	current_pcb->etatP = TERMINATED;
-	while(1);
-    //ctx_switch();
-}
-
 void elect()
 {
-	while(current_pcb->pcbNext->etatP == TERMINATED)
-	{
-		/*if(current_pcb->pcbNext == current_pcb)//Cas limite, le process terminé boucle sur lui-même
-		{
-			current_pcb = firstTime_pcb;
-			
-		}*/
-		pcb_s *old_pcb = current_pcb->pcbNext;	
-		current_pcb->pcbNext = old_pcb->pcbNext;
-		current_pcb->pcbNext->pcbPrevious = current_pcb;
-		phyAlloc_free((void *)old_pcb->stack_base, old_pcb->stack_size);
-		phyAlloc_free(old_pcb, sizeof(pcb_s));
+	int shouldLoop = 1;
+	pcb_s *looking_pcb = current_pcb;
+	
+	if(current_pcb->etatP == RUNNING){
+		current_pcb->etatP = READY;
 	}
-	current_pcb=current_pcb->pcbNext;
+	do{
+		looking_pcb = looking_pcb->pcbNext;
+		if(looking_pcb->etatP == TERMINATED){
+			/*if(current_pcb->pcbNext == current_pcb)//Cas limite, le process terminé boucle sur lui-même
+			{
+				current_pcb = firstTime_pcb;
+			}*/
+			pcb_s *old_pcb = looking_pcb;
+			looking_pcb = looking_pcb->pcbPrevious;
+			// Update Next/Previous
+			old_pcb->pcbPrevious->pcbNext = old_pcb->pcbNext;
+			old_pcb->pcbNext->pcbPrevious = old_pcb->pcbPrevious;
+			// Free memory space reserved for deleted process
+			phyAlloc_free((void *)old_pcb->stack_base, old_pcb->stack_size);
+			phyAlloc_free(old_pcb, sizeof(pcb_s));
+		} else {
+			shouldLoop = 0;
+		}
+	} while(shouldLoop);
+	current_pcb=looking_pcb;
+	current_pcb->etatP = RUNNING;
 }
 
 void start_sched()
