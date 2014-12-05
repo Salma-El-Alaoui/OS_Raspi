@@ -30,6 +30,7 @@ typedef struct pcb_s
 	
 	// Systeme collabo : chaîne circulaire
 	struct pcb_s * pcbNext;
+	struct pcb_s * pcbPrevious;
 }pcb_s;
 
 void create_process(func_t f, void *args, unsigned int stack_size);
