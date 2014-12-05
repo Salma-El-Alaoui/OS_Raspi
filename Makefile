@@ -6,6 +6,8 @@ ASFLAGS = -g -march=armv6z
 C_FILES=kernel.c
 SCHEDULER_FILES = $(addprefix preemptive-scheduler/,phyAlloc.c hw.c sched.c)
 C_FILES+= $(SCHEDULER_FILES)
+MMU_FILES = $(addprefix mmu/,vmem.c)
+C_FILES+= $(MMU_FILES)
 AS_FILES=vectors.s
 
 SRC_DIR = src/
