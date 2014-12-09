@@ -5,6 +5,7 @@
 
 struct pcb_s * current_pcb = NULL;
 pcb_s* priority_lists[PRIORITY_NUMBER];
+struct pcb_s * waiting_pcb = NULL;
 
 void start_current_process()
 {
@@ -41,6 +42,25 @@ void init_pcb(struct pcb_s * pcb,func_t f, void* args, unsigned int stack_size, 
 		pcb->priority= priority;
 	}
 
+}
+
+void increment_all_waiting() //On incrémente à chaque switch
+{
+	struct pcb_s * pcb_temp;
+	pcb_temp = current_pcb;
+	
+	do {		
+		if(pcb_temp->etatP == WAITING)
+		{
+			pcb_temp->nbQuantums--;
+			if(pcb_temp->nbQuantums == 0) 
+			{
+				pcb_temp->etatP = READY;
+			}
+		}
+		pcb_temp = pcb_temp->pcbNext;
+	}
+	while(pcb_temp != current_pcb);
 }
 
 void create_process(func_t f, void* args, unsigned int stack_size, unsigned short priority)
@@ -91,6 +111,8 @@ struct pcb_s* elect_pcb_into_list(unsigned short priority){
 			// Free memory space reserved for deleted process
 			phyAlloc_free((void *)old_pcb->stack_base, old_pcb->stack_size);
 			phyAlloc_free(old_pcb, sizeof(pcb_s));
+		}else if(current_pcb->pcbNext->etatP == WAITING)
+		{
 		} else {
 			should_execute = 1;
 		}
@@ -101,7 +123,21 @@ struct pcb_s* elect_pcb_into_list(unsigned short priority){
 	}
 	else {
 		return NULL;
-	}
+	}	
+void start_current_process()
+{
+	current_pcb->etatP= RUNNING;
+	current_pcb->f(current_pcb->args);
+	current_pcb->etatP = TERMINATED;
+	while(1);
+}
+
+void wait(int nbQuantums)
+{
+	current_pcb->etatP = WAITING;
+	current_pcb->nbQuantums = nbQuantums;
+	//TODO fusionner le code d'insertion/retrait
+	ctx_switch();
 }
 
 void elect()
@@ -169,6 +205,7 @@ void ctx_switch_from_irq()
 
 	//choix nouveau processus
 	elect();
+	increment_all_waiting();
 	
 	__asm("mov sp, %0" : : "r"(current_pcb->stack_pointer));
 	__asm("pop {r0-r12}");
