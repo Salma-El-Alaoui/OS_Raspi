@@ -60,6 +60,7 @@ void sys_wait(unsigned int nbQuantums)
 	__asm("mov r0, %0" : : "r"(numSysCall) : "r0");
 	__asm("mov r1, %0" : : "r"(nbQuantums) : "r1");
 	__asm("SWI 0" : : : "lr");
+	ENABLE_IRQ();
 }
 
 
