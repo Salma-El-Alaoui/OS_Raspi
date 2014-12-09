@@ -113,6 +113,7 @@ struct pcb_s* elect_pcb_into_list(unsigned short priority){
 			phyAlloc_free(old_pcb, sizeof(pcb_s));
 		}else if(current_pcb->pcbNext->etatP == WAITING)
 		{
+			// Nothing to do
 		} else {
 			should_execute = 1;
 		}
@@ -123,20 +124,13 @@ struct pcb_s* elect_pcb_into_list(unsigned short priority){
 	}
 	else {
 		return NULL;
-	}	
-void start_current_process()
-{
-	current_pcb->etatP= RUNNING;
-	current_pcb->f(current_pcb->args);
-	current_pcb->etatP = TERMINATED;
-	while(1);
-}
+	}
+}	
 
 void wait(int nbQuantums)
 {
 	current_pcb->etatP = WAITING;
 	current_pcb->nbQuantums = nbQuantums;
-	//TODO fusionner le code d'insertion/retrait
 	ctx_switch();
 }
 
