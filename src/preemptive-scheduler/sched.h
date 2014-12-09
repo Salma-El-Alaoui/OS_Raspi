@@ -12,7 +12,7 @@ typedef void (*func_t) ( void*);
 => 200 donc 256
 */
 #define STACK_SIZE 256
-typedef enum etatProcessus {WAITING, READY, RUNNING, TERMINATED} etatProcessus;
+typedef enum etatProcessus {READY, RUNNING, TERMINATED,WAITING} etatProcessus;
 
 typedef struct pcb_s
 {
@@ -31,6 +31,8 @@ typedef struct pcb_s
 	// Systeme collabo : chaîne circulaire
 	struct pcb_s * pcbNext;
 	struct pcb_s * pcbPrevious;
+
+	int nbQuantums;
 }pcb_s;
 
 void create_process(func_t f, void *args, unsigned int stack_size);

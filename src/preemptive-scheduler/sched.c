@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 struct pcb_s * current_pcb = NULL;
+struct pcb_s * waiting_pcb = NULL;
 pcb_s * firstTime_pcb;
 
 void init_pcb(struct pcb_s * pcb,func_t f, void* args, unsigned int stack_size)
@@ -18,13 +19,32 @@ void init_pcb(struct pcb_s * pcb,func_t f, void* args, unsigned int stack_size)
 	pcb->stack_pointer += -sizeof(int);
 	(*(unsigned int*)pcb->stack_pointer) = &start_current_process;
 	// On dépile 13 registres au premier switch réel, on se décale/remonte dans la pile de 14 cases	
-	pcb->stack_pointer += -14*sizeof(int);
+	pcb->stack_pointer += -13*sizeof(int);
 	pcb->stack_size = stack_size;
 	
 	pcb->f=f;
 	pcb->args = args;
 	
 	pcb->etatP = READY;
+}
+
+void increment_all_waiting() //On incrémente à chaque switch
+{
+	struct pcb_s * pcb_temp;
+	pcb_temp = current_pcb;
+	
+	do {		
+		if(pcb_temp->etatP == WAITING)
+		{
+			pcb_temp->nbQuantums--;
+			if(pcb_temp->nbQuantums == 0) 
+			{
+				pcb_temp->etatP = READY;
+			}
+		}
+		pcb_temp = pcb_temp->pcbNext;
+	}
+	while(pcb_temp != current_pcb);
 }
 
 void create_process(func_t f, void* args, unsigned int stack_size)
@@ -54,25 +74,40 @@ void start_current_process()
 	current_pcb->f(current_pcb->args);
 	current_pcb->etatP = TERMINATED;
 	while(1);
-    //ctx_switch();
+}
+
+void wait(int nbQuantums)
+{
+	current_pcb->etatP = WAITING;
+	current_pcb->nbQuantums = nbQuantums;
+	//TODO fusionner le code d'insertion/retrait
+	ctx_switch();
 }
 
 void elect()
 {
-	while(current_pcb->pcbNext->etatP == TERMINATED)
+	pcb_s* pcb_unelected = current_pcb;
+	while((current_pcb->pcbNext->etatP == TERMINATED) || (current_pcb->pcbNext->etatP == WAITING))
 	{
-		/*if(current_pcb->pcbNext == current_pcb)//Cas limite, le process terminé boucle sur lui-même
+		if(current_pcb->pcbNext->etatP == TERMINATED)
 		{
-			current_pcb = firstTime_pcb;
-			
-		}*/
-		pcb_s *old_pcb = current_pcb->pcbNext;	
-		current_pcb->pcbNext = old_pcb->pcbNext;
-		current_pcb->pcbNext->pcbPrevious = current_pcb;
-		phyAlloc_free((void *)old_pcb->stack_base, old_pcb->stack_size);
-		phyAlloc_free(old_pcb, sizeof(pcb_s));
-	}
+			pcb_s *old_pcb = current_pcb->pcbNext;	
+			current_pcb->pcbNext = old_pcb->pcbNext;
+			current_pcb->pcbNext->pcbPrevious = current_pcb;
+			phyAlloc_free((void *)old_pcb->stack_base, old_pcb->stack_size);
+			phyAlloc_free(old_pcb, sizeof(pcb_s));
+		}else if(current_pcb->pcbNext->etatP == WAITING)
+		{
+			current_pcb=current_pcb->pcbNext;
+		}
+		
+	}	
 	current_pcb=current_pcb->pcbNext;
+	if(pcb_unelected->etatP == RUNNING)
+	{
+		pcb_unelected->etatP = READY;
+	}
+	current_pcb->etatP = RUNNING;
 }
 
 void start_sched()
@@ -127,6 +162,7 @@ void ctx_switch_from_irq()
 
 	//choix nouveau processus
 	elect();
+	increment_all_waiting();
 	
 	__asm("mov sp, %0" : : "r"(current_pcb->stack_pointer));
 	__asm("pop {r0-r12}");
