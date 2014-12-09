@@ -1,6 +1,9 @@
 #include "preemptive-scheduler/hw.h"
 #include "preemptive-scheduler/sched.h"
 #include <stdlib.h>
+
+unsigned int init_kern_translation_table (void);
+
 void funcA()
 {
 	int cptA = 0;
@@ -23,6 +26,7 @@ int kmain ( void )
 	create_process(funcB, NULL, STACK_SIZE);
 	create_process(funcA,NULL, STACK_SIZE);
 	start_sched();
+	init_kern_translation_table ();
 	while(1);
 	/* Pas atteignable vues nos 2 fonctions */
 	return 0;
