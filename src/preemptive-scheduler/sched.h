@@ -12,6 +12,7 @@ typedef void (*func_t) ( void*);
 => 200 donc 256
 */
 #define STACK_SIZE 256
+#define PRIORITY_NUMBER 16
 typedef enum etatProcessus {WAITING, READY, RUNNING, TERMINATED} etatProcessus;
 
 typedef struct pcb_s
@@ -35,12 +36,11 @@ typedef struct pcb_s
 //#ifdef PRIORITY_SCHED
 	// Système de priorité de processus
 	unsigned short priority;
-	unsigned short priotityIgnoredLoop;
 //#endif
 
 }pcb_s;
 
-void create_process(func_t f, void *args, unsigned int stack_size);
+void create_process(func_t f, void* args, unsigned int stack_size, unsigned short priority);
 
 void start_sched();
 
