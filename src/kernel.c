@@ -1,12 +1,12 @@
 #include "preemptive-scheduler/hw.h"
 #include "preemptive-scheduler/sched.h"
+#include "dyn-alloc/dynalloc.h"
 #include <stdlib.h>
+
 void funcA()
 {
-	int cptA = 0;
-	while (1) {
-		cptA ++;
-	}
+	int* i = gmalloc(sizeof(int));
+	*i = 1;
 
 }
 void funcB()
