@@ -27,11 +27,12 @@ void doSysCallKill(){
 	kill(process_ID);
 }
 
-void doSysWaitPID(){
+void doSysCallWaitPID(){
 	unsigned int process_ID;
 	__asm("mov %0, r1" : "=r"(process_ID));
 	waitpid(process_ID);
 }
+
 
 
 void SWIHandler()
@@ -79,7 +80,7 @@ void sys_wait(unsigned int nbQuantums)
 	ENABLE_IRQ();
 }
 
-void sys_kill(unsigned int process_ID)
+/*void sys_kill(unsigned int process_ID)
 {
 	DISABLE_IRQ();
 	numSysCall = 3;
@@ -89,7 +90,7 @@ void sys_kill(unsigned int process_ID)
 	ENABLE_IRQ();
 }
 
-void sys_wait_pid(unsigned int process_ID)
+void sys_waitpid(unsigned int process_ID)
 {
 	DISABLE_IRQ();
 	numSysCall = 4;
@@ -97,6 +98,6 @@ void sys_wait_pid(unsigned int process_ID)
 	__asm("mov r1, %0" : : "r"(process_ID) : "r1");
 	__asm("SWI 0" : : : "lr");
 	ENABLE_IRQ();
-}
+}*/
 
 
