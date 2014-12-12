@@ -4,10 +4,19 @@
 #include <stdlib.h>
 
 struct pcb_s * current_pcb = NULL;
+pcb_s* priority_lists[PRIORITY_NUMBER];
 struct pcb_s * waiting_pcb = NULL;
-pcb_s * firstTime_pcb;
 
-void init_pcb(struct pcb_s * pcb,func_t f, void* args, unsigned int stack_size)
+void start_current_process()
+{
+	current_pcb->etatP= RUNNING;
+	current_pcb->f(current_pcb->args);
+	current_pcb->etatP = TERMINATED;
+	while(1);
+    //ctx_switch();
+}
+
+void init_pcb(struct pcb_s * pcb,func_t f, void* args, unsigned int stack_size, unsigned short priority)
 {
 	pcb->instruct_address = (unsigned int) &start_current_process;
 	pcb->stack_base = (unsigned int) phyAlloc_alloc(stack_size);
@@ -26,6 +35,13 @@ void init_pcb(struct pcb_s * pcb,func_t f, void* args, unsigned int stack_size)
 	pcb->args = args;
 	
 	pcb->etatP = READY;
+	
+	if(priority>=PRIORITY_NUMBER){
+		pcb->priority= PRIORITY_NUMBER-1;
+	} else {
+		pcb->priority= priority;
+	}
+
 }
 
 void increment_all_waiting() //On incrémente à chaque switch
@@ -47,75 +63,96 @@ void increment_all_waiting() //On incrémente à chaque switch
 	while(pcb_temp != current_pcb);
 }
 
-void create_process(func_t f, void* args, unsigned int stack_size)
+void create_process(func_t f, void* args, unsigned int stack_size, unsigned short priority)
 {
 	pcb_s * pcb = phyAlloc_alloc(sizeof(pcb_s));
+	int i;
 	
-	if(current_pcb == NULL)
+	init_pcb(pcb,f,args,stack_size, priority);
+	if(priority_lists == NULL)
 	{
-		current_pcb = pcb;
+		for(i=0;i<PRIORITY_NUMBER;i++){
+			priority_lists[i] = NULL;
+		}
+	}
+	if(priority_lists[pcb->priority] == NULL){
+		priority_lists[pcb->priority] = pcb;
 		pcb->pcbNext = pcb;
 		pcb->pcbPrevious = pcb;
 	}
 	else
 	{
-		pcb->pcbNext = current_pcb;
-		pcb->pcbPrevious = current_pcb->pcbPrevious;
-		current_pcb->pcbPrevious->pcbNext=pcb;
-		current_pcb->pcbPrevious = pcb;
+		pcb->pcbNext = priority_lists[pcb->priority];
+		pcb->pcbPrevious = priority_lists[pcb->priority]->pcbPrevious;
+		priority_lists[pcb->priority]->pcbPrevious->pcbNext=pcb;
+		priority_lists[pcb->priority]->pcbPrevious = pcb;
 	}
-	
-	init_pcb(pcb,f,args,stack_size);
 }
 
-void start_current_process()
-{
-	current_pcb->etatP= RUNNING;
-	current_pcb->f(current_pcb->args);
-	current_pcb->etatP = TERMINATED;
-	while(1);
-}
+struct pcb_s* elect_pcb_into_list(unsigned short priority){
+	int should_execute = 0;
+	pcb_s *head_pcb = priority_lists[priority];
+	pcb_s *looking_pcb = head_pcb;
+	if(head_pcb == NULL){
+		return NULL;
+	}
+	do{
+		looking_pcb = looking_pcb->pcbNext;
+		if(looking_pcb->etatP == TERMINATED){
+			pcb_s *old_pcb = looking_pcb;
+			if(old_pcb->pcbNext == old_pcb){
+					priority_lists[priority]=NULL;
+			} else {
+				looking_pcb = looking_pcb->pcbPrevious;
+				// Update Next/Previous
+				old_pcb->pcbPrevious->pcbNext = old_pcb->pcbNext;
+				old_pcb->pcbNext->pcbPrevious = old_pcb->pcbPrevious;
+			}
+			// Free memory space reserved for deleted process
+			phyAlloc_free((void *)old_pcb->stack_base, old_pcb->stack_size);
+			phyAlloc_free(old_pcb, sizeof(pcb_s));
+		}else if(current_pcb->pcbNext->etatP == WAITING)
+		{
+			// Nothing to do
+		} else {
+			should_execute = 1;
+		}
+	} while(should_execute == 0 && looking_pcb != head_pcb);
+	
+	if(should_execute){
+		return looking_pcb;
+	}
+	else {
+		return NULL;
+	}
+}	
 
 void wait(int nbQuantums)
 {
 	current_pcb->etatP = WAITING;
 	current_pcb->nbQuantums = nbQuantums;
-	//TODO fusionner le code d'insertion/retrait
 	ctx_switch();
 }
 
 void elect()
 {
-	pcb_s* pcb_unelected = current_pcb;
-	while((current_pcb->pcbNext->etatP == TERMINATED) || (current_pcb->pcbNext->etatP == WAITING))
-	{
-		if(current_pcb->pcbNext->etatP == TERMINATED)
-		{
-			pcb_s *old_pcb = current_pcb->pcbNext;	
-			current_pcb->pcbNext = old_pcb->pcbNext;
-			current_pcb->pcbNext->pcbPrevious = current_pcb;
-			phyAlloc_free((void *)old_pcb->stack_base, old_pcb->stack_size);
-			phyAlloc_free(old_pcb, sizeof(pcb_s));
-		}else if(current_pcb->pcbNext->etatP == WAITING)
-		{
-			current_pcb=current_pcb->pcbNext;
-		}
-		
+	int i;
+	pcb_s* next_pcb = NULL; //Will be executed
+	
+	if(current_pcb != NULL && current_pcb->etatP == RUNNING){
+		current_pcb->etatP = READY;
 	}	
-	current_pcb=current_pcb->pcbNext;
-	if(pcb_unelected->etatP == RUNNING)
-	{
-		pcb_unelected->etatP = READY;
+	for (i=PRIORITY_NUMBER-1; i>=0 && next_pcb==NULL; --i){
+		next_pcb = elect_pcb_into_list(i);
 	}
+	
+	// TODO No process
+	current_pcb=next_pcb;
 	current_pcb->etatP = RUNNING;
 }
 
 void start_sched()
 {
-	// firstTime_pcb = phyAlloc_alloc(sizeof(pcb_s));
-	firstTime_pcb->pcbNext = current_pcb;
-	current_pcb = firstTime_pcb;
-	
 	//On arme le timer
 	set_tick_and_enable_timer();
 	//On dit que la suite du code est interruptible
