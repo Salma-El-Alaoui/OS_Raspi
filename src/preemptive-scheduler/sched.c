@@ -4,7 +4,9 @@
 #include <stdlib.h>
 
 struct pcb_s * current_pcb = NULL;
-pcb_s* priority_lists[PRIORITY_NUMBER];
+//pcb_s* priority_lists[PRIORITY_NUMBER];
+
+struct pcb_s * pcb_root;
 struct pcb_s * waiting_pcb = NULL;
 
 void start_current_process()
@@ -41,11 +43,13 @@ void init_pcb(struct pcb_s * pcb,func_t f, void* args, unsigned int stack_size, 
 	} else {
 		pcb->priority= priority;
 	}
+	pcb->real_priority = pcb->priority;
 
 }
 
 void increment_all_waiting() //On incrémente à chaque switch
 {
+	// TODO => Adapt to Fixed priority scheduler
 	struct pcb_s * pcb_temp;
 	pcb_temp = current_pcb;
 	
@@ -69,7 +73,8 @@ void create_process(func_t f, void* args, unsigned int stack_size, unsigned shor
 	int i;
 	
 	init_pcb(pcb,f,args,stack_size, priority);
-	if(priority_lists == NULL)
+	//preemptive with fixed priorities
+	/*if(priority_lists == NULL)
 	{
 		for(i=0;i<PRIORITY_NUMBER;i++){
 			priority_lists[i] = NULL;
@@ -87,12 +92,17 @@ void create_process(func_t f, void* args, unsigned int stack_size, unsigned shor
 		priority_lists[pcb->priority]->pcbPrevious->pcbNext=pcb;
 		priority_lists[pcb->priority]->pcbPrevious = pcb;
 	}
+	*/
+	
+	insert_process(pcb, &pcb_root);
 }
 
 struct pcb_s* elect_pcb_into_list(unsigned short priority){
-	int should_execute = 0;
-	pcb_s *head_pcb = priority_lists[priority];
+	int should_execute = 0;	
 	pcb_s *looking_pcb = head_pcb;
+	
+	/*
+	pcb_s *head_pcb = priority_lists[priority];
 	if(head_pcb == NULL){
 		return NULL;
 	}
@@ -125,6 +135,9 @@ struct pcb_s* elect_pcb_into_list(unsigned short priority){
 	else {
 		return NULL;
 	}
+	*/
+	
+	
 }	
 
 void wait(int nbQuantums)
@@ -207,10 +220,41 @@ void ctx_switch_from_irq()
 	//On arme le timer
 	set_tick_and_enable_timer();
 	//On dit que la suite du code est interruptible
-	ENABLE_IRQ();
+	// ENABLE_IRQ(); Uselesssssssss !
 
 	// Jump -> On met la valeur de lr dans PC
 	__asm("rfeia sp!");
 
+	
+}
+void insert_process(struct pcb_s * new_process, struct pcb_s ** pcb_head)
+{
+	if(pcb_head == NULL){
+		*pcb_head = new_process;
+	}
+	else{
+		if(new_process->key < pcb_head->key){
+			insert_process(new_process, &(pcb_head->pcb-left));
+		}
+		else{
+			insert_process(new_process, &(pcb_head>pcb-right));
+		}
+		
+	}	
+}
+
+void delete_process(struct pcb_s * old_process, struct pcb_s ** pcb_head){
+	
+
+}
+
+struct pcb_s * find_process(struct pcb_s * process, struct pcb_s ** pcb_head){
+	
+	if(pcb_head->pid == process->pid)
+		return pcb_head;
+	
+	if(new_process->key < pcb_head->key){
+		return find_process(process, &(pcb_head->pcb-left));
+	}
 	
 }

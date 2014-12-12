@@ -13,7 +13,7 @@ void funcA()
 void funcB()
 {
 	int cptB = 1;
-	while (cptB<10) {
+	while (1) {
 		cptB += 2 ;
 		sys_wait(3);
 	}

@@ -30,12 +30,19 @@ typedef struct pcb_s
 	enum etatProcessus etatP;
 	
 	// Systeme collabo : chaîne circulaire
-	struct pcb_s * pcbNext;
-	struct pcb_s * pcbPrevious;
+	//struct pcb_s * pcbNext;
+	//struct pcb_s * pcbPrevious;
+	
+	// Tree
+	struct pcb_s * pcb_left;
+	struct pcb_s * pcb_right;
+	unsigned int key; 
+	
 //#ifdef PRIORITY_SCHED
 	// Système de priorité de processus
 	unsigned short priority;
 //#endif
+	unsigned int real_priority;
 
 	int nbQuantums;
 }pcb_s;
