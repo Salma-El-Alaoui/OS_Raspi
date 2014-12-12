@@ -13,9 +13,9 @@ void funcA()
 void funcB()
 {
 	int cptB = 1;
-	while (cptB<10) {
-		cptB += 6 ;
-		sys_wait(5);
+	kill(2);
+	while (1) {
+		cptB += 2 ;
 	}
 }
 //------------------------------------------------------------------------

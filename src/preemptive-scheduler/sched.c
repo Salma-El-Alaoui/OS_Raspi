@@ -7,8 +7,53 @@ struct pcb_s * current_pcb = NULL;
 struct pcb_s * waiting_pcb = NULL;
 pcb_s * firstTime_pcb;
 
+//------------------------------------------PARTIE UTILS------------------------------------------------------------------
+
+pcb_s* findProcessById(unsigned int process_id)
+{
+	struct pcb_s * pcb_temp;
+	pcb_temp = current_pcb;
+	do {		
+		if(pcb_temp->ID == process_id)
+		{
+			return pcb_temp;
+		}
+		pcb_temp = pcb_temp->pcbNext;
+	}
+	while(pcb_temp != current_pcb);
+
+	return NULL;
+}
+
+
+
+
+//------------------------------------------PARTIE INITIALISATION---------------------------------------------------------
+void start_sched()
+{
+	// firstTime_pcb = phyAlloc_alloc(sizeof(pcb_s));
+	firstTime_pcb->pcbNext = current_pcb;
+	current_pcb = firstTime_pcb;
+	
+	//On arme le timer
+	set_tick_and_enable_timer();
+	//On dit que la suite du code est interruptible
+	ENABLE_IRQ();
+}
+
+void start_current_process()
+{
+	current_pcb->etatP= RUNNING;
+	current_pcb->f(current_pcb->args);
+	current_pcb->etatP = TERMINATED;
+	while(1);
+}
+
 void init_pcb(struct pcb_s * pcb,func_t f, void* args, unsigned int stack_size)
 {
+	static unsigned int process_id = 1;
+	pcb->ID = process_id++;
+
 	pcb->instruct_address = (unsigned int) &start_current_process;
 	pcb->stack_base = (unsigned int) phyAlloc_alloc(stack_size);
 	pcb->stack_pointer = pcb->stack_base + stack_size - sizeof(int);
@@ -26,6 +71,45 @@ void init_pcb(struct pcb_s * pcb,func_t f, void* args, unsigned int stack_size)
 	pcb->args = args;
 	
 	pcb->etatP = READY;
+}
+
+void create_process(func_t f, void* args, unsigned int stack_size)
+{
+
+	pcb_s * pcb = phyAlloc_alloc(sizeof(pcb_s));
+	
+	if(current_pcb == NULL)
+	{
+		current_pcb = pcb;
+		pcb->pcbNext = pcb;
+		pcb->pcbPrevious = pcb;
+	}
+	else
+	{
+		pcb->pcbNext = current_pcb;
+		pcb->pcbPrevious = current_pcb->pcbPrevious;
+		current_pcb->pcbPrevious->pcbNext=pcb;
+		current_pcb->pcbPrevious = pcb;
+	}
+	
+	init_pcb(pcb,f,args,stack_size);
+}
+
+
+
+
+
+
+
+//----------------------------------------------PARTIE APPELS SYSTEME-----------------------------------------------------
+
+	//---------------------------------------WAIT--------------------------------
+void wait(int nbQuantums)
+{
+	current_pcb->etatP = WAITING;
+	current_pcb->nbQuantums = nbQuantums;
+	//TODO fusionner le code d'insertion/retrait
+	ctx_switch();
 }
 
 void increment_all_waiting() //On incrémente à chaque switch
@@ -47,43 +131,40 @@ void increment_all_waiting() //On incrémente à chaque switch
 	while(pcb_temp != current_pcb);
 }
 
-void create_process(func_t f, void* args, unsigned int stack_size)
+	//--------------------------------------KILL---------------------------------
+void kill(unsigned int process_id)
 {
-	pcb_s * pcb = phyAlloc_alloc(sizeof(pcb_s));
-	
-	if(current_pcb == NULL)
+	//Chercher ID dans la boucle
+	struct pcb_s* pcb_to_delete = NULL;
+	if( (pcb_to_delete = findProcessById(process_id)) == NULL )
 	{
-		current_pcb = pcb;
-		pcb->pcbNext = pcb;
-		pcb->pcbPrevious = pcb;
-	}
-	else
+		//Send error
+	}else
 	{
-		pcb->pcbNext = current_pcb;
-		pcb->pcbPrevious = current_pcb->pcbPrevious;
-		current_pcb->pcbPrevious->pcbNext=pcb;
-		current_pcb->pcbPrevious = pcb;
+		pcb_s *old_pcb = pcb_to_delete->pcbNext;	
+
+		//On le retire de la boucle
+		pcb_to_delete->pcbNext = old_pcb->pcbNext;
+		pcb_to_delete->pcbNext->pcbPrevious = pcb_to_delete;
+
+		//On supprime le processus
+		phyAlloc_free((void *)old_pcb->stack_base, old_pcb->stack_size);
+		phyAlloc_free(old_pcb, sizeof(pcb_s));
 	}
+
+}
+
+	//----------------------------------------WAITPID-----------------------------
+void waitpid(unsigned int process_id)
+{
 	
-	init_pcb(pcb,f,args,stack_size);
 }
 
-void start_current_process()
-{
-	current_pcb->etatP= RUNNING;
-	current_pcb->f(current_pcb->args);
-	current_pcb->etatP = TERMINATED;
-	while(1);
-}
 
-void wait(int nbQuantums)
-{
-	current_pcb->etatP = WAITING;
-	current_pcb->nbQuantums = nbQuantums;
-	//TODO fusionner le code d'insertion/retrait
-	ctx_switch();
-}
 
+
+
+//---------------------------------------------PARTIE SWITCH-------------------------------------------------------------
 void elect()
 {
 	pcb_s* pcb_unelected = current_pcb;
@@ -108,18 +189,6 @@ void elect()
 		pcb_unelected->etatP = READY;
 	}
 	current_pcb->etatP = RUNNING;
-}
-
-void start_sched()
-{
-	// firstTime_pcb = phyAlloc_alloc(sizeof(pcb_s));
-	firstTime_pcb->pcbNext = current_pcb;
-	current_pcb = firstTime_pcb;
-	
-	//On arme le timer
-	set_tick_and_enable_timer();
-	//On dit que la suite du code est interruptible
-	ENABLE_IRQ();
 }
 	
 void __attribute__ ((naked)) ctx_switch()
@@ -173,7 +242,14 @@ void ctx_switch_from_irq()
 	ENABLE_IRQ();
 
 	// Jump -> On met la valeur de lr dans PC
-	__asm("rfeia sp!");
-
-	
+	__asm("rfeia sp!");	
 }
+
+
+
+
+
+
+
+
+
