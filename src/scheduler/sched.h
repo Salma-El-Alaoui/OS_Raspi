@@ -1,8 +1,18 @@
 #ifndef SCHED_H
 #define SCHED_H
 
-typedef void (*func_t) ( void*);
+/**
+* FIXED_PRIORITY_SCHED
+* OWN_SCHED
+* RR_SCHED
+*
+* PRIORITY_SCHED
+*/
+#if defined FIXED_PRIORITY_SCHED  || defined OWN_SCHED
+	#define PRIORITY_SCHED
+#endif
 
+typedef void (*func_t) ( void*);
 /*
 *pour une fonction:
 *3 parametres (3 int de 32)
@@ -17,7 +27,8 @@ typedef enum etatProcessus {WAITING, READY, RUNNING, TERMINATED} etatProcessus;
 
 typedef struct pcb_s
 {
-	// Un peu comme un contexte
+	unsigned int pid;
+
 	unsigned int instruct_address;
 	unsigned int stack_pointer;
 	unsigned int stack_base;
@@ -28,26 +39,31 @@ typedef struct pcb_s
 	void * args;
 	
 	enum etatProcessus etatP;
-	
-	// Systeme collabo : chaîne circulaire
-	//struct pcb_s * pcbNext;
-	//struct pcb_s * pcbPrevious;
-	
-	// Tree
-	struct pcb_s * pcb_left;
-	struct pcb_s * pcb_right;
-	unsigned int key; 
-	
-//#ifdef PRIORITY_SCHED
-	// Système de priorité de processus
-	unsigned short priority;
-//#endif
-	unsigned int real_priority;
-
 	int nbQuantums;
-}pcb_s;
+	
+#if !defined RR_SCHED && !defined FIXED_PRIORITY_SCHED
+	struct pcb_s * pcbNext;	//Linked list
+	struct pcb_s * pcbPrevious;	//Linked list
+#endif
 
+#ifdef PRIORITY_SCHED
+	unsigned short priority;
+#endif
+
+#ifdef OWN_SCHED
+	struct pcb_s * pcb_left;	//Tree structure
+	struct pcb_s * pcb_right;	//Tree structure
+	unsigned int key;	//Tree key
+	unsigned int real_priority;
+#endif
+	
+} pcb_s;
+
+#ifdef PRIORITY_SCHED
 void create_process(func_t f, void* args, unsigned int stack_size, unsigned short priority);
+#else
+void create_process(func_t f, void* args, unsigned int stack_size);
+#endif
 
 void start_sched();
 

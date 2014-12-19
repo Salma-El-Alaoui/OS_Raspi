@@ -1,10 +1,10 @@
 ARMGNU ?= arm-none-eabi
 
-CFLAGS = -Wall -nostdlib -fomit-frame-pointer -mno-apcs-frame -nostartfiles -ffreestanding -g -march=armv6z -marm -mthumb-interwork
+CFLAGS = -Wall -nostdlib -fomit-frame-pointer -mno-apcs-frame -nostartfiles -ffreestanding -g -march=armv6z -marm -mthumb-interwork -DRR_SCHED
 ASFLAGS = -g -march=armv6z
 
 C_FILES=kernel.c
-SCHEDULER_FILES = $(addprefix preemptive-scheduler/,phyAlloc.c hw.c sched.c)
+SCHEDULER_FILES = $(addprefix scheduler/,phyAlloc.c hw.c sched.c)
 C_FILES+= $(SCHEDULER_FILES)
 MMU_FILES = $(addprefix mmu/,vmem.c)
 C_FILES+= $(MMU_FILES)
@@ -26,7 +26,6 @@ gcc : kernel
 
 clean :
 	@rm -R -f $(BIN_DIR)
-
 
 $(BIN_DIR)%.o : $(SRC_DIR)%.c
 	mkdir -p $(dir $@)

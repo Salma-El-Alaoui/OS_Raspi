@@ -1,7 +1,8 @@
-#include "preemptive-scheduler/hw.h"
-#include "preemptive-scheduler/sched.h"
+#include "scheduler/sched.h"
+#include "scheduler/hw.h"
 #include "syscalls/syscall.h"
 #include <stdlib.h>
+
 void funcA()
 {
 	int cptA = 0;
@@ -10,6 +11,7 @@ void funcA()
 	}
 
 }
+
 void funcB()
 {
 	int cptB = 1;
@@ -18,12 +20,19 @@ void funcB()
 		sys_wait(3);
 	}
 }
+
 //------------------------------------------------------------------------
 int kmain ( void )
 {
 	init_hw();
+
+#ifdef PRIORITY_SCHED
 	create_process(funcB, NULL, STACK_SIZE, 5);
-	create_process(funcA,NULL, STACK_SIZE, 2);
+	create_process(funcA, NULL, STACK_SIZE, 2);
+#else
+	create_process(funcB, NULL, STACK_SIZE);
+	create_process(funcA, NULL, STACK_SIZE);
+#endif
 	start_sched();
 	while(1);
 	/* Pas atteignable vues nos 2 fonctions */
