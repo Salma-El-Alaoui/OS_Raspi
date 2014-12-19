@@ -1,6 +1,6 @@
 #include "syscall.h"
-#include "../preemptive-scheduler/sched.h"
-#include "../preemptive-scheduler/hw.h"
+#include "../scheduler/sched.h"
+#include "../scheduler/hw.h"
 
 unsigned int numSysCall;
 

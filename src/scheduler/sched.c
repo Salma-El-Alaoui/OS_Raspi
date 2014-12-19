@@ -14,6 +14,141 @@ pcb_s* priority_lists[PRIORITY_NUMBER];	//Priority Array
 struct pcb_s * pcb_root;	//Tree root
 #endif
 
+// ----------------------------------------------------------------------------------------------------
+//										UTILS
+// ----------------------------------------------------------------------------------------------------
+void update_waiting(struct pcb_s * pcb)
+{
+	if(pcb->etatP == WAITING)
+	{
+		pcb->nbQuantums--;
+		if(pcb->nbQuantums == 0) 
+		{
+			pcb->etatP = READY;
+		}
+	}
+}
+
+
+#ifdef OWN_SCHED
+void insert_process(struct pcb_s * new_process, struct pcb_s ** pcb_head)
+{
+	if(pcb_head == NULL){
+		*pcb_head = new_process;
+	}
+	else{
+		if(new_process->key < pcb_head->key) {
+			insert_process(new_process, &(pcb_head->pcb-left));
+		}
+		else {
+			insert_process(new_process, &(pcb_head>pcb-right));
+		}
+		
+	}	
+}
+
+void delete_process(struct pcb_s * old_process, struct pcb_s ** pcb_head){
+}
+
+struct pcb_s * find_process(struct pcb_s * process, struct pcb_s ** pcb_head){
+	if(pcb_head->pid == process->pid)
+		return pcb_head;
+	
+	if(new_process->key < pcb_head->key){
+		return find_process(process, &(pcb_head->pcb-left));
+	}
+}
+#endif
+
+#ifdef FIXED_PRIORITY_SCHED
+void insert_process(struct pcb_s * pcb)
+{
+	int i;
+	// Init array if NULL
+	if(priority_lists == NULL) {
+		for(i=0;i<PRIORITY_NUMBER;i++){
+			priority_lists[i] = NULL;
+		}
+	}
+
+	if(priority_lists[pcb->priority] == NULL){	//if empty list
+		priority_lists[pcb->priority] = pcb;
+		pcb->pcbNext = pcb;
+		pcb->pcbPrevious = pcb;
+	} else {
+		pcb->pcbNext = priority_lists[pcb->priority];
+		pcb->pcbPrevious = priority_lists[pcb->priority]->pcbPrevious;
+		priority_lists[pcb->priority]->pcbPrevious->pcbNext=pcb;
+		priority_lists[pcb->priority]->pcbPrevious = pcb;
+	}
+}
+
+void delete_process(struct pcb_s * pcb){
+	pcb_s *old_pcb = pcb;
+
+	if(old_pcb->pcbNext == old_pcb){
+			priority_lists[pcb->priority]=NULL;
+	} else {
+		// Update Next/Previous
+		old_pcb->pcbPrevious->pcbNext = old_pcb->pcbNext;
+		old_pcb->pcbNext->pcbPrevious = old_pcb->pcbPrevious;
+	}
+	// Free memory space reserved for deleted process
+	phyAlloc_free((void *)old_pcb->stack_base, old_pcb->stack_size);
+	phyAlloc_free(old_pcb, sizeof(pcb_s));
+
+}
+
+struct pcb_s * find_process_by_pid(unsigned int pid){
+	int i;
+	pcb_s* pcb = NULL;
+
+	if(priority_lists == NULL) {
+		return NULL;	
+	}
+
+	for(i=0;i<PRIORITY_NUMBER;i++){
+		pcb = priority_lists[i];
+		if(pcb != NULL) {
+			do {
+				if(pcb->pid == pid) {
+					return pcb;
+				}
+				pcb = pcb->pcbNext;
+			}
+			while(pcb != priority_lists[i]);
+		}
+	}
+	return NULL;
+}
+
+void apply_function(func_pcb f){
+	int i;
+	pcb_s* pcb = NULL;
+
+	if(priority_lists == NULL) {
+		return;	
+	}
+
+	for(i=0;i<PRIORITY_NUMBER;i++){
+		pcb = priority_lists[i];
+		if(pcb != NULL) {
+			do {
+				f(pcb);
+			}
+			while(pcb != priority_lists[i]);
+		}
+	}
+
+}
+
+#endif
+
+
+// ----------------------------------------------------------------------------------------------------
+//										INITIALISATION
+// ----------------------------------------------------------------------------------------------------
+
 void start_current_process()
 {
 	current_pcb->etatP= RUNNING;
@@ -53,30 +188,10 @@ void init_pcb(struct pcb_s * pcb,func_t f, void* args, unsigned int stack_size)
 	} else {
 		pcb->priority= priority;
 	}
-	pcb->real_priority = pcb->priority;
 #endif
 
 }
 
-void increment_all_waiting() //On incrémente à chaque switch
-{
-	// TODO => Adapt to Fixed priority scheduler
-	struct pcb_s * pcb_temp;
-	pcb_temp = current_pcb;
-	
-	do {		
-		if(pcb_temp->etatP == WAITING)
-		{
-			pcb_temp->nbQuantums--;
-			if(pcb_temp->nbQuantums == 0) 
-			{
-				pcb_temp->etatP = READY;
-			}
-		}
-		pcb_temp = pcb_temp->pcbNext;
-	}
-	while(pcb_temp != current_pcb);
-}
 
 #ifdef PRIORITY_SCHED
 void create_process(func_t f, void* args, unsigned int stack_size, unsigned short priority)
@@ -85,31 +200,41 @@ void create_process(func_t f, void* args, unsigned int stack_size)
 #endif
 {
 	pcb_s * pcb = phyAlloc_alloc(sizeof(pcb_s));	
+#ifdef PRIORITY_SCHED
 	init_pcb(pcb,f,args,stack_size, priority);
+#else
+	init_pcb(pcb,f,args,stack_size);
+#endif
 
-#if !defined FIXED_PRIORITY_SCHED && !defined RR_SCHED
+#ifdef LIST_SCHED
 	insert_process(pcb);
 #elif defined OWN_SCHED 	
 	insert_process(pcb, &pcb_root);
 #endif
-
 }
+
+void start_sched()
+{
+#ifdef RR_SCHED
+	firstTime_pcb->pcbNext = current_pcb;
+	current_pcb = firstTime_pcb;
+#endif
+	//On arme le timer
+	set_tick_and_enable_timer();
+	//On dit que la suite du code est interruptible
+	ENABLE_IRQ();
+}
+
+
+
+// ----------------------------------------------------------------------------------------------------
+//										SWITCH
+// ----------------------------------------------------------------------------------------------------
 
 int should_elect(struct pcb_s * pcb){
 	int should_execute = 0;
 	if(pcb->etatP == TERMINATED){
-		pcb_s *old_pcb = pcb;
-		if(old_pcb->pcbNext == old_pcb){
-				priority_lists[priority]=NULL;
-		} else {
-			pcb = pcb->pcbPrevious;
-			// Update Next/Previous
-			old_pcb->pcbPrevious->pcbNext = old_pcb->pcbNext;
-			old_pcb->pcbNext->pcbPrevious = old_pcb->pcbPrevious;
-		}
-		// Free memory space reserved for deleted process
-		phyAlloc_free((void *)old_pcb->stack_base, old_pcb->stack_size);
-		phyAlloc_free(old_pcb, sizeof(pcb_s));
+		// TODO DELETE
 	}else if(current_pcb->pcbNext->etatP == WAITING)
 	{
 		// Nothing to do
@@ -119,11 +244,24 @@ int should_elect(struct pcb_s * pcb){
 	return should_execute;
 }
 
-void wait(int nbQuantums)
-{
-	current_pcb->etatP = WAITING;
-	current_pcb->nbQuantums = nbQuantums;
-	ctx_switch();
+struct pcb_s* elect_pcb_into_list(unsigned short priority){
+	int should_execute = 0;	
+	pcb_s *head_pcb = priority_lists[priority];
+	pcb_s *looking_pcb = head_pcb;
+	if(head_pcb == NULL){
+		return NULL;
+	}
+	do{
+		looking_pcb = looking_pcb->pcbNext;
+		should_execute = should_elect(looking_pcb);
+	} while(should_execute == 0 && looking_pcb != head_pcb);
+
+	if(should_execute){
+		return looking_pcb;
+	}
+	else {
+		return NULL;
+	}
 }
 
 void elect()
@@ -133,7 +271,6 @@ void elect()
 	if(current_pcb != NULL && current_pcb->etatP == RUNNING){
 		current_pcb->etatP = READY;
 	}
-
 #ifdef RR_SCHED
 	next_pcb = current_pcb;
 	do{
@@ -150,20 +287,11 @@ void elect()
 	
 	current_pcb=next_pcb;
 	current_pcb->etatP = RUNNING;
+
+	apply_function(update_waiting);
+
 }
 
-void start_sched()
-{
-#ifdef RR_SCHED
-	firstTime_pcb->pcbNext = current_pcb;
-	current_pcb = firstTime_pcb;
-#endif
-	//On arme le timer
-	set_tick_and_enable_timer();
-	//On dit que la suite du code est interruptible
-	ENABLE_IRQ();
-}
-	
 void __attribute__ ((naked)) ctx_switch()
 {
 	DISABLE_IRQ();
@@ -204,7 +332,6 @@ void ctx_switch_from_irq()
 
 	//choix nouveau processus
 	elect();
-	increment_all_waiting();
 	
 	__asm("mov sp, %0" : : "r"(current_pcb->stack_pointer));
 	__asm("pop {r0-r12}");
@@ -220,103 +347,14 @@ void ctx_switch_from_irq()
 	
 }
 
-#ifdef OWN_SCHED
-void insert_process(struct pcb_s * new_process, struct pcb_s ** pcb_head)
+
+// ----------------------------------------------------------------------------------------------------
+//										SYSCALLS
+// ----------------------------------------------------------------------------------------------------
+void wait(int nbQuantums)
 {
-	if(pcb_head == NULL){
-		*pcb_head = new_process;
-	}
-	else{
-		if(new_process->key < pcb_head->key) {
-			insert_process(new_process, &(pcb_head->pcb-left));
-		}
-		else {
-			insert_process(new_process, &(pcb_head>pcb-right));
-		}
-		
-	}	
+	current_pcb->etatP = WAITING;
+	current_pcb->nbQuantums = nbQuantums;
+	ctx_switch();
 }
 
-void delete_process(struct pcb_s * old_process, struct pcb_s ** pcb_head){
-}
-
-struct pcb_s * find_process(struct pcb_s * process, struct pcb_s ** pcb_head){
-	if(pcb_head->pid == process->pid)
-		return pcb_head;
-	
-	if(new_process->key < pcb_head->key){
-		return find_process(process, &(pcb_head->pcb-left));
-	}
-}
-#endif
-
-#ifdef FIXED_PRIORITY_SCHED
-void insert_process(struct pcb_s * new_process)
-{
-	int i;
-	// Init array if NULL
-	if(priority_lists == NULL) {
-		for(i=0;i<PRIORITY_NUMBER;i++){
-			priority_lists[i] = NULL;
-		}
-	}
-
-	if(priority_lists[pcb->priority] == NULL){	//if empty list
-		priority_lists[pcb->priority] = pcb;
-		pcb->pcbNext = pcb;
-		pcb->pcbPrevious = pcb;
-	} else {
-		pcb->pcbNext = priority_lists[pcb->priority];
-		pcb->pcbPrevious = priority_lists[pcb->priority]->pcbPrevious;
-		priority_lists[pcb->priority]->pcbPrevious->pcbNext=pcb;
-		priority_lists[pcb->priority]->pcbPrevious = pcb;
-	}
-}
-
-void delete_process(struct pcb_s * old_process){
-
-}
-
-struct pcb_s * find_process_by_pidx(unsigned int pid){
-	int i;
-	pcb_s* pcb = NULL;
-
-	if(priority_lists == NULL) {
-		return NULL;	
-	}
-
-	for(i=0;i<PRIORITY_NUMBER;i++){
-		pcb = priority_lists[i];
-		if(pcb != NULL) {
-			do {
-				if(pcb->pid == pid) {
-					return pcb;
-				}
-				pcb = pcb->pcbNext;
-			}
-			while(pcb != priority_lists[i]);
-		}
-	}
-	return NULL;
-}
-
-struct pcb_s* elect_pcb_into_list(unsigned short priority){
-	int should_execute = 0;	
-	pcb_s *looking_pcb = head_pcb;
-	pcb_s *head_pcb = priority_lists[priority];
-	if(head_pcb == NULL){
-		return NULL;
-	}
-	do{
-		looking_pcb = looking_pcb->pcbNext;
-		should_execute = should_elect(looking_pcb)
-	} while(should_execute == 0 && looking_pcb != head_pcb);
-
-	if(should_execute){
-		return looking_pcb;
-	}
-	else {
-		return NULL;
-	}
-}
-#endif

@@ -8,11 +8,15 @@
 *
 * PRIORITY_SCHED
 */
-#if defined FIXED_PRIORITY_SCHED  || defined OWN_SCHED
+#if !(!defined FIXED_PRIORITY_SCHED && !defined OWN_SCHED)
 	#define PRIORITY_SCHED
 #endif
+#if !(!defined RR_SCHED && !defined FIXED_PRIORITY_SCHED)
+	#define LIST_SCHED
+#endif
 
-typedef void (*func_t) ( void*);
+typedef void (*func_t) ( void* );
+
 /*
 *pour une fonction:
 *3 parametres (3 int de 32)
@@ -41,7 +45,7 @@ typedef struct pcb_s
 	enum etatProcessus etatP;
 	int nbQuantums;
 	
-#if !defined RR_SCHED && !defined FIXED_PRIORITY_SCHED
+#ifdef LIST_SCHED
 	struct pcb_s * pcbNext;	//Linked list
 	struct pcb_s * pcbPrevious;	//Linked list
 #endif
@@ -59,6 +63,8 @@ typedef struct pcb_s
 	
 } pcb_s;
 
+typedef void (*func_pcb) ( struct pcb_s * pcb);
+
 #ifdef PRIORITY_SCHED
 void create_process(func_t f, void* args, unsigned int stack_size, unsigned short priority);
 #else
@@ -66,5 +72,7 @@ void create_process(func_t f, void* args, unsigned int stack_size);
 #endif
 
 void start_sched();
+
+void wait(int nbQuantums);
 
 #endif
