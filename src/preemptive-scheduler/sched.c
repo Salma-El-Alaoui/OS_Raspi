@@ -25,6 +25,22 @@ pcb_s* findProcessById(unsigned int process_id)
 	return NULL;
 }
 
+void restartAllWaitingPIDProcess(unsigned int process_id)
+{
+	struct pcb_s * pcb_temp;
+	pcb_temp = current_pcb;
+	do {		
+		if(pcb_temp->pid_waiting == process_id)
+		{
+			pcb_temp->etatP = READY;
+			pcb_temp->pid_waiting = -1;
+		}
+		pcb_temp = pcb_temp->pcbNext;
+	}
+	while(pcb_temp != current_pcb);
+
+}
+
 
 
 
@@ -53,6 +69,8 @@ void init_pcb(struct pcb_s * pcb,func_t f, void* args, unsigned int stack_size)
 {
 	static unsigned int process_id = 1;
 	pcb->ID = process_id++;
+
+	pcb->pid_waiting = -1;
 
 	pcb->instruct_address = (unsigned int) &start_current_process;
 	pcb->stack_base = (unsigned int) phyAlloc_alloc(stack_size);
@@ -118,7 +136,7 @@ void increment_all_waiting() //On incrémente à chaque switch
 	pcb_temp = current_pcb;
 	
 	do {		
-		if(pcb_temp->etatP == WAITING)
+		if(pcb_temp->etatP == WAITING && pcb_temp->pid_waiting == -1)
 		{
 			pcb_temp->nbQuantums--;
 			if(pcb_temp->nbQuantums == 0) 
@@ -156,7 +174,9 @@ void kill(unsigned int process_id)
 	//----------------------------------------WAITPID-----------------------------
 void waitpid(unsigned int process_id)
 {
-
+	current_pcb->etatP = WAITING;
+	current_pcb->pid_waiting = process_id;
+	ctx_switch();
 }
 
 
@@ -174,6 +194,9 @@ void elect()
 			pcb_s *old_pcb = current_pcb->pcbNext;	
 			current_pcb->pcbNext = old_pcb->pcbNext;
 			current_pcb->pcbNext->pcbPrevious = current_pcb;
+
+			restartAllWaitingPIDProcess(old_pcb->ID);
+
 			phyAlloc_free((void *)old_pcb->stack_base, old_pcb->stack_size);
 			phyAlloc_free(old_pcb, sizeof(pcb_s));
 		}else if(current_pcb->pcbNext->etatP == WAITING)

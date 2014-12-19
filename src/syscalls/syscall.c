@@ -79,24 +79,23 @@ void sys_wait(unsigned int nbQuantums)
 	ENABLE_IRQ();
 }
 
-void sys_kill(unsigned int process_ID)
+void sys_kill(unsigned int process_id)
 {
 	DISABLE_IRQ();
 	numSysCall = 3;
 	__asm("mov r0, %0" : : "r"(numSysCall) : "r0");
-	__asm("mov r1, %0" : : "r"(process_ID) : "r1");
+	__asm("mov r1, %0" : : "r"(process_id) : "r1");
 	__asm("SWI 0" : : : "lr");
 	ENABLE_IRQ();
 }
 
-void sys_wait_pid(unsigned int process_ID)
+void sys_wait_pid(unsigned int process_id)
 {
 	DISABLE_IRQ();
 	numSysCall = 4;
 	__asm("mov r0, %0" : : "r"(numSysCall) : "r0");
-	__asm("mov r1, %0" : : "r"(process_ID) : "r1");
+	__asm("mov r1, %0" : : "r"(process_id) : "r1");
 	__asm("SWI 0" : : : "lr");
-	ENABLE_IRQ();
 }
 
 
