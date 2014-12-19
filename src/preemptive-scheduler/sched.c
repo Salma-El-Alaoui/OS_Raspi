@@ -2,6 +2,7 @@
 #include "phyAlloc.h"
 #include "hw.h"
 #include <stdlib.h>
+#include <string.h>
 
 struct pcb_s * current_pcb = NULL;
 //pcb_s* priority_lists[PRIORITY_NUMBER];
@@ -50,7 +51,7 @@ void init_pcb(struct pcb_s * pcb,func_t f, void* args, unsigned int stack_size, 
 void increment_all_waiting() //On incrémente à chaque switch
 {
 	// TODO => Adapt to Fixed priority scheduler
-	struct pcb_s * pcb_temp;
+	/*struct pcb_s * pcb_temp;
 	pcb_temp = current_pcb;
 	
 	do {		
@@ -65,6 +66,7 @@ void increment_all_waiting() //On incrémente à chaque switch
 		pcb_temp = pcb_temp->pcbNext;
 	}
 	while(pcb_temp != current_pcb);
+	*/
 }
 
 void create_process(func_t f, void* args, unsigned int stack_size, unsigned short priority)
@@ -99,7 +101,7 @@ void create_process(func_t f, void* args, unsigned int stack_size, unsigned shor
 
 struct pcb_s* elect_pcb_into_list(unsigned short priority){
 	int should_execute = 0;	
-	pcb_s *looking_pcb = head_pcb;
+	pcb_s *looking_pcb = pcb_root;
 	
 	/*
 	pcb_s *head_pcb = priority_lists[priority];
@@ -212,7 +214,7 @@ void ctx_switch_from_irq()
 
 	//choix nouveau processus
 	elect();
-	increment_all_waiting();
+	//increment_all_waiting();
 	
 	__asm("mov sp, %0" : : "r"(current_pcb->stack_pointer));
 	__asm("pop {r0-r12}");
@@ -233,28 +235,65 @@ void insert_process(struct pcb_s * new_process, struct pcb_s ** pcb_head)
 		*pcb_head = new_process;
 	}
 	else{
-		if(new_process->key < pcb_head->key){
-			insert_process(new_process, &(pcb_head->pcb-left));
+		if(new_process->key < (*pcb_head)->key){
+			insert_process(new_process, &(*pcb_head)->pcb_left);
 		}
 		else{
-			insert_process(new_process, &(pcb_head>pcb-right));
+			insert_process(new_process, &(*pcb_head)->pcb_right);
 		}
 		
 	}	
 }
 
-void delete_process(struct pcb_s * old_process, struct pcb_s ** pcb_head){
-	
+void delete_process(struct pcb_s * process, struct pcb_s ** pcb_head){
+
+	if (*pcb_head == NULL) 	// empty tree or not in the tree
+		return;
+	if(process->key < (*pcb_head)->key)
+		delete_process(process, &(*pcb_head)->pcb_left);
+	else if(process->key > (*pcb_head)->key)
+		delete_process(process, &(*pcb_head)->pcb_right);
+	else
+		delete_found_process(*pcb_head);
 
 }
 
-struct pcb_s * find_process(struct pcb_s * process, struct pcb_s ** pcb_head){
+
+void delete_found_process(struct pcb_s * old_process){
+
+	pcb_s * temp = old_process;
+  
+  	if (old_process->pcb_left == NULL) //no left child
+  	{
+		old_process = old_process->pcb_right;
+		phyAlloc_free(temp, sizeof(pcb_s));
+  	}
+
+  	else if (old_process->pcb_right == NULL) //no right child
+    {
+		old_process= old_process->pcb_left;
+		phyAlloc_free(temp, sizeof(pcb_s));
+    }
+
+  	else //left & right                           
+    {
+     	temp = old_process->pcb_left; //right-most node of left sub-tree
+     	while (temp->pcb_right != NULL)
+       		temp = temp->pcb_right; // we're there
+
+	//copy the roots' children to the node.
+	temp->pcb_right = old_process->pcb_right;
+	temp->pcb_left = old_process->pcb_left ;
+
+	//move the node to the root
+	memcpy(old_process, temp, sizeof(pcb_s));
 	
-	if(pcb_head->pid == process->pid)
-		return pcb_head;
-	
-	if(new_process->key < pcb_head->key){
-		return find_process(process, &(pcb_head->pcb-left));
-	}
-	
+	//delete the duplicate node now
+	delete_process(old_process->pcb_left, temp);
+
+    }
+
+
 }
+
+
