@@ -27,7 +27,7 @@ void doSysCallKill(){
 	kill(process_ID);
 }
 
-void doSysWaitPID(){
+void doSysCallWaitPID(){
 	unsigned int process_ID;
 	__asm("mov %0, r1" : "=r"(process_ID));
 	waitpid(process_ID);

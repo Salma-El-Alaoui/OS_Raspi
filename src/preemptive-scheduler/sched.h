@@ -48,6 +48,6 @@ void wait(int nbQuantums);
 
 void kill(unsigned int process_id);
 
-void waitpid(process_id)
+void waitpid(unsigned int process_id);
 
 #endif

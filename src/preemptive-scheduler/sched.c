@@ -141,15 +141,14 @@ void kill(unsigned int process_id)
 		//Send error
 	}else
 	{
-		pcb_s *old_pcb = pcb_to_delete->pcbNext;	
 
 		//On le retire de la boucle
-		pcb_to_delete->pcbNext = old_pcb->pcbNext;
-		pcb_to_delete->pcbNext->pcbPrevious = pcb_to_delete;
+		pcb_to_delete->pcbPrevious->pcbNext = pcb_to_delete->pcbNext;
+		pcb_to_delete->pcbNext->pcbPrevious = pcb_to_delete->pcbPrevious;
 
 		//On supprime le processus
-		phyAlloc_free((void *)old_pcb->stack_base, old_pcb->stack_size);
-		phyAlloc_free(old_pcb, sizeof(pcb_s));
+		phyAlloc_free((void *)pcb_to_delete->stack_base, pcb_to_delete->stack_size);
+		phyAlloc_free(pcb_to_delete, sizeof(pcb_s));
 	}
 
 }
@@ -157,7 +156,7 @@ void kill(unsigned int process_id)
 	//----------------------------------------WAITPID-----------------------------
 void waitpid(unsigned int process_id)
 {
-	
+
 }
 
 

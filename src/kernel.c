@@ -13,7 +13,7 @@ void funcA()
 void funcB()
 {
 	int cptB = 1;
-	kill(2);
+	sys_kill(2);
 	while (1) {
 		cptB += 2 ;
 	}
