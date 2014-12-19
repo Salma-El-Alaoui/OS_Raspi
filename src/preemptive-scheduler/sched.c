@@ -95,25 +95,6 @@ void init_pcb(struct pcb_s * pcb,func_t f, void* args, unsigned int stack_size, 
 
 }
 
-void increment_all_waiting() //On incrémente à chaque switch
-{
-	struct pcb_s * pcb_temp;
-	pcb_temp = current_pcb;
-	
-	do {		
-		if(pcb_temp->etatP == WAITING)
-		{
-			pcb_temp->nbQuantums--;
-			if(pcb_temp->nbQuantums == 0) 
-			{
-				pcb_temp->etatP = READY;
-			}
-		}
-		pcb_temp = pcb_temp->pcbNext;
-	}
-	while(pcb_temp != current_pcb);
-}
-
 void create_process(func_t f, void* args, unsigned int stack_size, unsigned short priority)
 {
 
@@ -140,48 +121,6 @@ void create_process(func_t f, void* args, unsigned int stack_size, unsigned shor
 		priority_lists[pcb->priority]->pcbPrevious = pcb;
 	}
 }
-
-struct pcb_s* elect_pcb_into_list(unsigned short priority){
-	int should_execute = 0;
-	pcb_s *head_pcb = priority_lists[priority];
-	pcb_s *looking_pcb = head_pcb;
-	if(head_pcb == NULL){
-		return NULL;
-	}
-	do{
-		looking_pcb = looking_pcb->pcbNext;
-		if(looking_pcb->etatP == TERMINATED){
-			pcb_s *old_pcb = looking_pcb;
-			if(old_pcb->pcbNext == old_pcb){
-					priority_lists[priority]=NULL;
-			} else {
-				looking_pcb = looking_pcb->pcbPrevious;
-				// Update Next/Previous
-				old_pcb->pcbPrevious->pcbNext = old_pcb->pcbNext;
-				old_pcb->pcbNext->pcbPrevious = old_pcb->pcbPrevious;
-			}
-
-			restartAllWaitingPIDProcess(old_pcb->ID);
-
-			// Free memory space reserved for deleted process
-			phyAlloc_free((void *)old_pcb->stack_base, old_pcb->stack_size);
-			phyAlloc_free(old_pcb, sizeof(pcb_s));
-		}else if(current_pcb->pcbNext->etatP == WAITING)
-		{
-			// Nothing to do
-		} else {
-			should_execute = 1;
-		}
-	} while(should_execute == 0 && looking_pcb != head_pcb);
-	
-	if(should_execute){
-		return looking_pcb;
-	}
-	else {
-		return NULL;
-	}
-}	
-
 
 
 
@@ -251,6 +190,47 @@ void waitpid(unsigned int process_id)
 
 
 //---------------------------------------------PARTIE SWITCH-------------------------------------------------------------
+struct pcb_s* elect_pcb_into_list(unsigned short priority){
+	int should_execute = 0;
+	pcb_s *head_pcb = priority_lists[priority];
+	pcb_s *looking_pcb = head_pcb;
+	if(head_pcb == NULL){
+		return NULL;
+	}
+	do{
+		looking_pcb = looking_pcb->pcbNext;
+		if(looking_pcb->etatP == TERMINATED){
+			pcb_s *old_pcb = looking_pcb;
+			if(old_pcb->pcbNext == old_pcb){
+					priority_lists[priority]=NULL;
+			} else {
+				looking_pcb = looking_pcb->pcbPrevious;
+				// Update Next/Previous
+				old_pcb->pcbPrevious->pcbNext = old_pcb->pcbNext;
+				old_pcb->pcbNext->pcbPrevious = old_pcb->pcbPrevious;
+			}
+
+			restartAllWaitingPIDProcess(old_pcb->ID);
+
+			// Free memory space reserved for deleted process
+			phyAlloc_free((void *)old_pcb->stack_base, old_pcb->stack_size);
+			phyAlloc_free(old_pcb, sizeof(pcb_s));
+		}else if(current_pcb->pcbNext->etatP == WAITING)
+		{
+			// Nothing to do
+		} else {
+			should_execute = 1;
+		}
+	} while(should_execute == 0 && looking_pcb != head_pcb);
+	
+	if(should_execute){
+		return looking_pcb;
+	}
+	else {
+		return NULL;
+	}
+}	
+
 void elect()
 {
 	int i;
