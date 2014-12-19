@@ -12,7 +12,8 @@ typedef void (*func_t) ( void*);
 => 200 donc 256
 */
 #define STACK_SIZE 256
-typedef enum etatProcessus {READY, RUNNING, TERMINATED,WAITING} etatProcessus;
+#define PRIORITY_NUMBER 16
+typedef enum etatProcessus {WAITING, READY, RUNNING, TERMINATED} etatProcessus;
 
 typedef struct pcb_s
 {
@@ -34,11 +35,14 @@ typedef struct pcb_s
 	// Systeme collabo : chaîne circulaire
 	struct pcb_s * pcbNext;
 	struct pcb_s * pcbPrevious;
+//#ifdef PRIORITY_SCHED
+	// Système de priorité de processus
+	unsigned short priority;
+//#endif
 
 	int nbQuantums;
 }pcb_s;
 
-void create_process(func_t f, void *args, unsigned int stack_size);
 
 void __attribute__ ((naked)) ctx_switch();
 
@@ -47,6 +51,7 @@ void start_sched();
 void wait(int nbQuantums);
 
 void kill(unsigned int process_id);
+void create_process(func_t f, void* args, unsigned int stack_size, unsigned short priority);
 
 void waitpid(unsigned int process_id);
 
