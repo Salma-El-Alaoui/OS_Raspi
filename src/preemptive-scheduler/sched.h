@@ -48,10 +48,11 @@ void __attribute__ ((naked)) ctx_switch();
 
 void start_sched();
 
+void create_process(func_t f, void* args, unsigned int stack_size, unsigned short priority);
+
 void wait(int nbQuantums);
 
 void kill(unsigned int process_id);
-void create_process(func_t f, void* args, unsigned int stack_size, unsigned short priority);
 
 void waitpid(unsigned int process_id);
 
