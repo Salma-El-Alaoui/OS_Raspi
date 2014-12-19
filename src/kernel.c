@@ -2,11 +2,10 @@
 #include "preemptive-scheduler/sched.h"
 #include "syscalls/syscall.h"
 #include <stdlib.h>
-
 void funcA()
 {
 	int cptA = 0;
-	while (cptA<10) {
+	while (1) {
 		cptA ++;		
 	}
 
@@ -14,10 +13,9 @@ void funcA()
 void funcB()
 {
 	int cptB = 1;
-
-	while (cptB<10) {
+	kill(2);
+	while (1) {
 		cptB += 2 ;
-		sys_wait(5);
 	}
 }
 //------------------------------------------------------------------------
