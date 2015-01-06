@@ -86,8 +86,31 @@ void init_table_occup_frame()
 	}
 }
 
-//uint8_t* vMem_Alloc(unsigned int nbPages){
-//}
+// TODO : METHODES SUIVANTES
+
+uint8_t* vMem_Alloc(unsigned int nbPages){
+	
+	int space = 0;
+	uint8_t* start_space_in_table = 0;
+		
+	uint8_t* i =pointer_table_occup_frame;
+	while(i<end_table_occup_frame || space == nbPages){
+		if((*i) == 0){
+			space++;
+			if (space == 0){
+				start_space_in_table = &i;
+			}
+		} else {
+			 space = 0;
+		}
+		i++;
+	}
+	if (space == nbPages) {
+		// TODO : mettre à 1
+		return start_space_in_table; // TODO : on doit retourner un pointeur vers l'espace alloué, pas ça !
+	}
+	return 0;
+}
 
 //void vMem_Free(uint8_t* ptr, unsigned int nbPages){
 //}
@@ -101,8 +124,8 @@ unsigned int init_kern_translation_table (void) {
 	for(i=pointer_pagetable_lvl1; i<pointer_pagetable_lvl1+FIRST_LVL_TT_SIZE; i+=4)
 	{
 		int** tmp=(int **)i;
-		// On enlève les 8 derniers bits qui correspondent au second-level table index pour obtenir la coarse page table base address
-		int baseAddrLvl2 = ((int)adrLvl2 >> 8); 
+		// On enlève les 10 derniers bits pour obtenir la coarse page table base address
+		int baseAddrLvl2 = ((int)adrLvl2 >> 10); 
 		(*tmp) =  (int*)((baseAddrLvl2 << 10) | first_level_flags);
 		adrLvl2 += SECON_LVL_TT_COUN;
 	}
@@ -113,26 +136,27 @@ unsigned int init_kern_translation_table (void) {
 		int indexEntreeLvl1=i/256;
 		int offsetLvl2 = i%256;
 		int* pointeurCaseLvl1= (int *)(pointer_pagetable_lvl1) + indexEntreeLvl1;
-		// On enlève les 10 bits de first_level_flags et on rajoute les 8 bits de second-level table index (0 pour le début de la table)
-		int* pointeurTableLvl2=(int*)(((*pointeurCaseLvl1) >> 10) << 8 );
-		int* pointeurEntreeLvl2 = pointeurTableLvl2 + offsetLvl2;
-		
-		(*pointeurEntreeLvl2)=(i<< 13) | normal_flags;
+		// On efface les 10 bits de flags
+		int* pointeurTableLvl2=(int*)((*pointeurCaseLvl1)& 0xFFFFFC00);
+		// On ajoute le second-level table index et les 2 bits à 0 pour obtenir le second-level descriptor address
+		int* pointeurEntreeLvl2 =(int*)( (int)pointeurTableLvl2 | (offsetLvl2 << 2));
+		//On remplit le second level descriptor
+		(*pointeurEntreeLvl2)=(i<< 12) | normal_flags;
 	}
 	// Adresses physiques entre 0x20000000 et 0x20FFFFFF -> p entre 0x20000 et 0x20FFF
 		for(i=0x20000; i<0x20fff; i++)	{
 		int indexEntreeLvl1=i/256;
 		int offsetLvl2 = i%256;
 		int* pointeurCaseLvl1= (int *)(pointer_pagetable_lvl1) + indexEntreeLvl1;
-		// On enlève les 10 bits de first_level_flags et on rajoute les 8 bits de second-level table index (0 pour le début de la table)
-		int* pointeurTableLvl2=(int*)(((*pointeurCaseLvl1) >> 10) << 8 );
-		int* pointeurEntreeLvl2 = pointeurTableLvl2 + offsetLvl2;
-		
-		(*pointeurEntreeLvl2)=(i << 13) | device_flags;
+		// On efface les 10 bits de flags
+		int* pointeurTableLvl2=(int*)((*pointeurCaseLvl1)& 0xFFFFFC00);
+		// On ajoute le second-level table index et les 2 bits à 0 pour obtenir le second-level descriptor address
+		int* pointeurEntreeLvl2 =(int*)( (int)pointeurTableLvl2 | (offsetLvl2 << 2));
+		//On remplit le second level descriptor
+		(*pointeurEntreeLvl2)=(i << 12) | device_flags;
 	}
 	
-	configure_mmu_C();
-	//start_mmu_C();
+
 				
 	init_table_occup_frame();
 				
