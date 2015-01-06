@@ -215,7 +215,7 @@ struct pcb_s* elect_pcb_into_list(unsigned short priority){
 			// Free memory space reserved for deleted process
 			phyAlloc_free((void *)old_pcb->stack_base, old_pcb->stack_size);
 			phyAlloc_free(old_pcb, sizeof(pcb_s));
-		}else if(current_pcb->pcbNext->etatP == WAITING)
+		}else if(looking_pcb->etatP == WAITING)
 		{
 			// Nothing to do
 		} else {
