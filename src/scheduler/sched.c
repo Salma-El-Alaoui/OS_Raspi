@@ -5,6 +5,8 @@
 
 
 struct pcb_s * current_pcb = NULL;
+struct pcb_s * trash_pcb = NULL;
+
 
 #ifdef RR_SCHED
 pcb_s * firstTime_pcb;
@@ -39,7 +41,9 @@ void restart_waiting_PID_process(struct pcb_s * pcb, void * args)
 	}
 }
 
-
+void waiting_loop(){
+	while(1);
+}
 
 // ----------------------------------------------------------------------------------------------------
 //										STRUCTURE CALLS
@@ -193,6 +197,12 @@ void start_current_process()
 }
 
 void init_pcb(struct pcb_s * pcb,func_t f, void* args, unsigned int stack_size, unsigned short priority) {
+
+	static unsigned int id = 1;
+	pcb->pid = id++;
+
+	pcb->pid_waiting = -1;
+
 //	pcb->instruct_address = (unsigned int) &start_current_process;
 	pcb->stack_base = (unsigned int) phyAlloc_alloc(stack_size);
 	pcb->stack_pointer = pcb->stack_base + stack_size - sizeof(int);
@@ -232,7 +242,12 @@ void start_sched()
 #ifdef RR_SCHED
 	firstTime_pcb->pcbNext = current_pcb;
 	current_pcb = firstTime_pcb;
+#else
+	trash_pcb =  phyAlloc_alloc(sizeof(pcb_s));	
+	init_pcb(trash_pcb, waiting_loop, NULL, STACK_SIZE, 0);
+	current_pcb = trash_pcb;
 #endif
+
 	//On arme le timer
 	set_tick_and_enable_timer();
 	//On dit que la suite du code est interruptible
@@ -253,7 +268,6 @@ int should_elect(struct pcb_s * pcb){
 		unsigned int pcb_pid = pcb->pid;
 		delete_process(pcb);
 		apply_function(restart_waiting_PID_process, (void *)pcb_pid);
-		
 	}else if(pcb->etatP == WAITING) {
 		// Nothing to do
 	} else {
@@ -303,8 +317,11 @@ void elect()
 #elif defined OWN_SCHED
 
 #endif
-	
-	current_pcb=next_pcb;
+	if(next_pcb == NULL){
+		current_pcb = trash_pcb;
+	} else {
+		current_pcb = next_pcb;
+	}
 	current_pcb->etatP = RUNNING;
 
 	apply_function(update_waiting, NULL);
