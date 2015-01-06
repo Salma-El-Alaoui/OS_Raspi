@@ -30,34 +30,32 @@ void update_waiting(struct pcb_s * pcb)
 }
 
 
+// ----------------------------------------------------------------------------------------------------
+//										STRUCTURE CALLS
+// ----------------------------------------------------------------------------------------------------
 #ifdef OWN_SCHED
-void insert_process(struct pcb_s * new_process, struct pcb_s ** pcb_head)
-{
-	if(pcb_head == NULL){
-		*pcb_head = new_process;
-	}
-	else{
-		if(new_process->key < pcb_head->key) {
-			insert_process(new_process, &(pcb_head->pcb-left));
-		}
-		else {
-			insert_process(new_process, &(pcb_head>pcb-right));
-		}
-		
-	}	
+void insert_process(struct pcb_s * new_process, struct pcb_s ** pcb_head) {
+	//TODO
 }
 
 void delete_process(struct pcb_s * old_process, struct pcb_s ** pcb_head){
+	//TODO
 }
 
-struct pcb_s * find_process(struct pcb_s * process, struct pcb_s ** pcb_head){
-	if(pcb_head->pid == process->pid)
-		return pcb_head;
-	
-	if(new_process->key < pcb_head->key){
-		return find_process(process, &(pcb_head->pcb-left));
-	}
+struct pcb_s * find_process(unsigned int pid, struct pcb_s ** pcb_head){
+	//TODO
+	return NULL;
 }
+
+struct pcb_s * find_process_by_pid(unsigned int pid){
+	//TODO
+	return NULL;
+}
+
+void apply_function(func_pcb f){
+	//TODO
+}
+
 #endif
 
 #ifdef FIXED_PRIORITY_SCHED
@@ -145,6 +143,26 @@ void apply_function(func_pcb f){
 #endif
 
 
+#ifdef RR_SCHED
+void insert_process(struct pcb_s * pcb)
+{
+	//TODO
+}
+
+void delete_process(struct pcb_s * pcb){
+	//TODO
+}
+
+struct pcb_s * find_process_by_pid(unsigned int pid){
+	//TODO
+	return NULL;
+}
+
+void apply_function(func_pcb f){
+	//TODO
+}
+#endif
+
 // ----------------------------------------------------------------------------------------------------
 //										INITIALISATION
 // ----------------------------------------------------------------------------------------------------
@@ -164,7 +182,7 @@ void init_pcb(struct pcb_s * pcb,func_t f, void* args, unsigned int stack_size, 
 void init_pcb(struct pcb_s * pcb,func_t f, void* args, unsigned int stack_size)
 #endif
 {
-	pcb->instruct_address = (unsigned int) &start_current_process;
+//	pcb->instruct_address = (unsigned int) &start_current_process;
 	pcb->stack_base = (unsigned int) phyAlloc_alloc(stack_size);
 	pcb->stack_pointer = pcb->stack_base + stack_size - sizeof(int);
 	
@@ -232,18 +250,17 @@ void start_sched()
 // ----------------------------------------------------------------------------------------------------
 
 int should_elect(struct pcb_s * pcb){
-	int should_execute = 0;
-	if(pcb->etatP == TERMINATED){
+	if(pcb->etatP == TERMINATED) {
 		// TODO DELETE
-	}else if(current_pcb->pcbNext->etatP == WAITING)
-	{
+	}else if(pcb->etatP == WAITING) {
 		// Nothing to do
 	} else {
-		should_execute = 1;
+		return 1;
 	}
-	return should_execute;
+	return 0;
 }
 
+#ifdef FIXED_PRIORITY_SCHED
 struct pcb_s* elect_pcb_into_list(unsigned short priority){
 	int should_execute = 0;	
 	pcb_s *head_pcb = priority_lists[priority];
@@ -263,6 +280,7 @@ struct pcb_s* elect_pcb_into_list(unsigned short priority){
 		return NULL;
 	}
 }
+#endif
 
 void elect()
 {
@@ -274,8 +292,8 @@ void elect()
 #ifdef RR_SCHED
 	next_pcb = current_pcb;
 	do{
-
-	} while() 
+		//TODO
+	} while(1);
 #elif defined FIXED_PRIORITY_SCHED
 	int i;
 	for (i=PRIORITY_NUMBER-1; i>=0 && next_pcb==NULL; --i){

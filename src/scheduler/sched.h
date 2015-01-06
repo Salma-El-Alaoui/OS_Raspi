@@ -27,13 +27,14 @@ typedef void (*func_t) ( void* );
 */
 #define STACK_SIZE 256
 #define PRIORITY_NUMBER 16
+
 typedef enum etatProcessus {WAITING, READY, RUNNING, TERMINATED} etatProcessus;
 
 typedef struct pcb_s
 {
 	unsigned int pid;
 
-	unsigned int instruct_address;
+//	unsigned int instruct_address;
 	unsigned int stack_pointer;
 	unsigned int stack_base;
 	
