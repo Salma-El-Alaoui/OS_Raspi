@@ -73,4 +73,9 @@ void start_sched();
 
 void wait(int nbQuantums);
 
+void kill(unsigned int process_id);
+
+void waitpid(unsigned int process_id);
+
+
 #endif

@@ -29,6 +29,17 @@ void update_waiting(struct pcb_s * pcb)
 	}
 }
 
+void restart_waiting_PID_process(struct pcb_s * pcb, unsigned int process_id)
+{
+	if(pcb->pid_waiting == process_id)
+	{
+		pcb->etatP = READY;
+		pcb->pid_waiting = -1;
+	}
+
+}
+
+
 
 // ----------------------------------------------------------------------------------------------------
 //										STRUCTURE CALLS
@@ -242,6 +253,7 @@ void create_process(func_t f, void* args, unsigned int stack_size) {
 int should_elect(struct pcb_s * pcb){
 	if(pcb->etatP == TERMINATED) {
 		delete_process(pcb);
+		// TODO Restart Process
 	}else if(pcb->etatP == WAITING) {
 		// Nothing to do
 	} else {
@@ -365,3 +377,31 @@ void wait(int nbQuantums)
 	ctx_switch();
 }
 
+// TODO Check
+void kill(unsigned int process_id)
+{
+	//Chercher ID dans la boucle
+	struct pcb_s* pcb_to_delete = NULL;
+	if( (pcb_to_delete = find_process_by_pid(process_id)) == NULL )
+	{
+		//Send error
+	}else
+	{
+
+		//On le retire de la boucle
+		pcb_to_delete->pcbPrevious->pcbNext = pcb_to_delete->pcbNext;
+		pcb_to_delete->pcbNext->pcbPrevious = pcb_to_delete->pcbPrevious;
+
+		//On supprime le processus
+		phyAlloc_free((void *)pcb_to_delete->stack_base, pcb_to_delete->stack_size);
+		phyAlloc_free(pcb_to_delete, sizeof(pcb_s));
+	}
+
+}
+
+void waitpid(unsigned int process_id)
+{
+	current_pcb->etatP = WAITING;
+	current_pcb->pid_waiting = process_id;
+	ctx_switch();
+}
