@@ -34,6 +34,14 @@ set_tick_and_enable_timer()
   ENABLE_TIMER_IRQ();
 }
 
+int
+get_execution_time(){
+  unsigned int clo = GET32(CLO);
+  unsigned int timer = GET32(C1);
+  unsigned int execution_time = INTERVAL - (timer-clo);
+  return execution_time;
+}
+
 
 /*
  * LEDs on/off
