@@ -66,11 +66,8 @@ typedef struct pcb_s
 
 typedef void (*func_pcb) ( struct pcb_s * pcb);
 
-#ifdef PRIORITY_SCHED
-void create_process(func_t f, void* args, unsigned int stack_size, unsigned short priority);
-#else
+void create_process_priority(func_t f, void* args, unsigned int stack_size, unsigned short priority);
 void create_process(func_t f, void* args, unsigned int stack_size);
-#endif
 
 void start_sched();
 

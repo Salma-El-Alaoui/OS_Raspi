@@ -27,8 +27,8 @@ int kmain ( void )
 	init_hw();
 
 #ifdef PRIORITY_SCHED
-	create_process(funcB, NULL, STACK_SIZE, 5);
-	create_process(funcA, NULL, STACK_SIZE, 2);
+	create_process_priority(funcB, NULL, STACK_SIZE, 5);
+	create_process_priority(funcA, NULL, STACK_SIZE, 2);
 #else
 	create_process(funcB, NULL, STACK_SIZE);
 	create_process(funcA, NULL, STACK_SIZE);

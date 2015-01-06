@@ -34,11 +34,19 @@ void update_waiting(struct pcb_s * pcb)
 //										STRUCTURE CALLS
 // ----------------------------------------------------------------------------------------------------
 #ifdef OWN_SCHED
-void insert_process(struct pcb_s * new_process, struct pcb_s ** pcb_head) {
+void insert_process_loop(struct pcb_s * new_process, struct pcb_s ** pcb_head) {
 	//TODO
 }
 
-void delete_process(struct pcb_s * old_process, struct pcb_s ** pcb_head){
+void insert_process(struct pcb_s * new_process) {
+	//TODO
+}
+
+void delete_process_loop(struct pcb_s * old_process, struct pcb_s ** pcb_head){
+	//TODO
+}
+
+void delete_process(struct pcb_s * old_process){
 	//TODO
 }
 
@@ -83,7 +91,6 @@ void insert_process(struct pcb_s * pcb)
 
 void delete_process(struct pcb_s * pcb){
 	pcb_s *old_pcb = pcb;
-
 	if(old_pcb->pcbNext == old_pcb){
 			priority_lists[pcb->priority]=NULL;
 	} else {
@@ -176,12 +183,7 @@ void start_current_process()
     //ctx_switch();
 }
 
-#ifdef PRIORITY_SCHED
-void init_pcb(struct pcb_s * pcb,func_t f, void* args, unsigned int stack_size, unsigned short priority)
-#else
-void init_pcb(struct pcb_s * pcb,func_t f, void* args, unsigned int stack_size)
-#endif
-{
+void init_pcb(struct pcb_s * pcb,func_t f, void* args, unsigned int stack_size, unsigned short priority) {
 //	pcb->instruct_address = (unsigned int) &start_current_process;
 	pcb->stack_base = (unsigned int) phyAlloc_alloc(stack_size);
 	pcb->stack_pointer = pcb->stack_base + stack_size - sizeof(int);
@@ -210,25 +212,10 @@ void init_pcb(struct pcb_s * pcb,func_t f, void* args, unsigned int stack_size)
 
 }
 
-
-#ifdef PRIORITY_SCHED
-void create_process(func_t f, void* args, unsigned int stack_size, unsigned short priority)
-#else
-void create_process(func_t f, void* args, unsigned int stack_size)
-#endif
-{
+void create_process_priority(func_t f, void* args, unsigned int stack_size, unsigned short priority) {
 	pcb_s * pcb = phyAlloc_alloc(sizeof(pcb_s));	
-#ifdef PRIORITY_SCHED
 	init_pcb(pcb,f,args,stack_size, priority);
-#else
-	init_pcb(pcb,f,args,stack_size);
-#endif
-
-#ifdef LIST_SCHED
 	insert_process(pcb);
-#elif defined OWN_SCHED 	
-	insert_process(pcb, &pcb_root);
-#endif
 }
 
 void start_sched()
@@ -243,6 +230,9 @@ void start_sched()
 	ENABLE_IRQ();
 }
 
+void create_process(func_t f, void* args, unsigned int stack_size) {
+	create_process_priority(f, args, stack_size,0);
+}
 
 
 // ----------------------------------------------------------------------------------------------------
@@ -251,7 +241,7 @@ void start_sched()
 
 int should_elect(struct pcb_s * pcb){
 	if(pcb->etatP == TERMINATED) {
-		// TODO DELETE
+		delete_process(pcb);
 	}else if(pcb->etatP == WAITING) {
 		// Nothing to do
 	} else {
@@ -265,35 +255,34 @@ struct pcb_s* elect_pcb_into_list(unsigned short priority){
 	int should_execute = 0;	
 	pcb_s *head_pcb = priority_lists[priority];
 	pcb_s *looking_pcb = head_pcb;
-	if(head_pcb == NULL){
+	if(head_pcb == NULL){	// TODO Put it in the loop ????? (Delete)
 		return NULL;
 	}
 	do{
 		looking_pcb = looking_pcb->pcbNext;
 		should_execute = should_elect(looking_pcb);
 	} while(should_execute == 0 && looking_pcb != head_pcb);
-
 	if(should_execute){
 		return looking_pcb;
 	}
-	else {
-		return NULL;
-	}
+	return NULL;
 }
 #endif
 
 void elect()
 {
-	pcb_s* next_pcb = NULL; //Will be executed
+	pcb_s* next_pcb = NULL; //Will be executed / Iterator
+	pcb_s* tmp_del_pcb = NULL; //Delete Case
 	
 	if(current_pcb != NULL && current_pcb->etatP == RUNNING){
 		current_pcb->etatP = READY;
 	}
 #ifdef RR_SCHED
-	next_pcb = current_pcb;
+	tmp_del_pcb = current_pcb->pcbNext;
 	do{
-		//TODO
-	} while(1);
+		next_pcb = tmp_del_pcb;
+		tmp_del_pcb = next_pcb->pcbNext;
+	} while(!should_elect(next_pcb));
 #elif defined FIXED_PRIORITY_SCHED
 	int i;
 	for (i=PRIORITY_NUMBER-1; i>=0 && next_pcb==NULL; --i){
