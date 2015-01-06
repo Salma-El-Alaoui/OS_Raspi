@@ -22,6 +22,9 @@ typedef struct pcb_s
 	unsigned int stack_pointer;
 	unsigned int stack_base;
 	
+	unsigned int ID;
+	unsigned int pid_waiting;
+
 	int stack_size;
 	
 	func_t f;
@@ -40,8 +43,17 @@ typedef struct pcb_s
 	int nbQuantums;
 }pcb_s;
 
-void create_process(func_t f, void* args, unsigned int stack_size, unsigned short priority);
+
+void __attribute__ ((naked)) ctx_switch();
 
 void start_sched();
+
+void create_process(func_t f, void* args, unsigned int stack_size, unsigned short priority);
+
+void wait(int nbQuantums);
+
+void kill(unsigned int process_id);
+
+void waitpid(unsigned int process_id);
 
 #endif

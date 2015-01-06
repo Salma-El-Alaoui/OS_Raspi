@@ -19,8 +19,18 @@ void doSysCallWait(){
 	unsigned int nbQuantums;
 	__asm("mov %0, r1" : "=r"(nbQuantums));
 	wait(nbQuantums);
-//TODO : Rendre le process inéligible pour une durée nbQuantums.
-	
+}
+
+void doSysCallKill(){
+	unsigned int process_ID;
+	__asm("mov %0, r1" : "=r"(process_ID));
+	kill(process_ID);
+}
+
+void doSysCallWaitPID(){
+	unsigned int process_ID;
+	__asm("mov %0, r1" : "=r"(process_ID));
+	waitpid(process_ID);
 }
 
 
@@ -36,6 +46,12 @@ void SWIHandler()
 			break;
 		case 2 : 
 			doSysCallWait();
+			break;
+		case 3 : 
+			doSysCallKill();
+			break;
+		case 4 : 
+			doSysCallWaitPID();
 			break;
 	}
 		
@@ -61,6 +77,25 @@ void sys_wait(unsigned int nbQuantums)
 	__asm("mov r1, %0" : : "r"(nbQuantums) : "r1");
 	__asm("SWI 0" : : : "lr");
 	ENABLE_IRQ();
+}
+
+void sys_kill(unsigned int process_id)
+{
+	DISABLE_IRQ();
+	numSysCall = 3;
+	__asm("mov r0, %0" : : "r"(numSysCall) : "r0");
+	__asm("mov r1, %0" : : "r"(process_id) : "r1");
+	__asm("SWI 0" : : : "lr");
+	ENABLE_IRQ();
+}
+
+void sys_wait_pid(unsigned int process_id)
+{
+	DISABLE_IRQ();
+	numSysCall = 4;
+	__asm("mov r0, %0" : : "r"(numSysCall) : "r0");
+	__asm("mov r1, %0" : : "r"(process_id) : "r1");
+	__asm("SWI 0" : : : "lr");
 }
 
 
