@@ -33,7 +33,9 @@ typedef enum etatProcessus {WAITING, READY, RUNNING, TERMINATED} etatProcessus;
 typedef struct pcb_s
 {
 	unsigned int pid;
+	unsigned int pid_waiting;
 
+	
 //	unsigned int instruct_address;
 	unsigned int stack_pointer;
 	unsigned int stack_base;

@@ -382,21 +382,12 @@ void kill(unsigned int process_id)
 {
 	//Chercher ID dans la boucle
 	struct pcb_s* pcb_to_delete = NULL;
-	if( (pcb_to_delete = find_process_by_pid(process_id)) == NULL )
-	{
+	if( (pcb_to_delete = find_process_by_pid(process_id)) == NULL ) {
 		//Send error
-	}else
-	{
-
-		//On le retire de la boucle
-		pcb_to_delete->pcbPrevious->pcbNext = pcb_to_delete->pcbNext;
-		pcb_to_delete->pcbNext->pcbPrevious = pcb_to_delete->pcbPrevious;
-
+	} else {
 		//On supprime le processus
-		phyAlloc_free((void *)pcb_to_delete->stack_base, pcb_to_delete->stack_size);
-		phyAlloc_free(pcb_to_delete, sizeof(pcb_s));
+		delete_process(pcb_to_delete);
 	}
-
 }
 
 void waitpid(unsigned int process_id)

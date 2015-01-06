@@ -2,7 +2,7 @@ ARMGNU ?= arm-none-eabi
 # -DOWN_SCHED
 # -DFIXED_PRIORITY_SCHED
 # -DRR_SCHED
-CFLAGS = -Wall -nostdlib -fomit-frame-pointer -mno-apcs-frame -nostartfiles -ffreestanding -g -march=armv6z -marm -mthumb-interwork -DOWN_SCHED
+CFLAGS = -Wall -nostdlib -fomit-frame-pointer -mno-apcs-frame -nostartfiles -ffreestanding -g -march=armv6z -marm -mthumb-interwork -DFIXED_PRIORITY_SCHED
 ASFLAGS = -g -march=armv6z
 
 C_FILES=kernel.c
