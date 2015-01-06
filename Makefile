@@ -10,12 +10,14 @@ MMU_FILES = $(addprefix mmu/,vmem.c)
 C_FILES+= $(MMU_FILES)
 SYSCALLS_FILES = $(addprefix syscalls/,syscall.c)
 C_FILES+= $(SYSCALLS_FILES)
+SOUND_FILES = $(addprefix sound-system/,pwm.c tune.wav)
+C_FILES+= $(SOUND_FILES)
 AS_FILES=vectors.s
 
 SRC_DIR = src/
 BIN_DIR = bin/
 OBJ = $(patsubst %.s,%.o,$(AS_FILES))
-OBJ += $(patsubst %.c,%.o,$(C_FILES))
+OBJ += $(patsubst %.wav,%.o,$(patsubst %.c,%.o,$(C_FILES)))
 MEMMAP = $(SRC_DIR)memmap
 
 OBJS = $(addprefix $(BIN_DIR),$(OBJ))
@@ -26,6 +28,9 @@ gcc : kernel
 
 clean :
 	@rm -R -f $(BIN_DIR)
+
+$(BIN_DIR)%.o : $(SRC_DIR)%.wav
+	$(ARMGNU)-ld -s -r -o $@ -b binary $^
 
 
 $(BIN_DIR)%.o : $(SRC_DIR)%.c
