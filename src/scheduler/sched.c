@@ -17,7 +17,7 @@ struct pcb_s * pcb_root;	//Tree root
 // ----------------------------------------------------------------------------------------------------
 //										UTILS
 // ----------------------------------------------------------------------------------------------------
-void update_waiting(struct pcb_s * pcb)
+void update_waiting(struct pcb_s * pcb, void * args)
 {
 	if(pcb->etatP == WAITING)
 	{
@@ -29,14 +29,14 @@ void update_waiting(struct pcb_s * pcb)
 	}
 }
 
-void restart_waiting_PID_process(struct pcb_s * pcb, unsigned int process_id)
+void restart_waiting_PID_process(struct pcb_s * pcb, void * args)
 {
+	unsigned int process_id = (unsigned int) args;
 	if(pcb->pid_waiting == process_id)
 	{
 		pcb->etatP = READY;
 		pcb->pid_waiting = -1;
 	}
-
 }
 
 
@@ -138,7 +138,7 @@ struct pcb_s * find_process_by_pid(unsigned int pid){
 	return NULL;
 }
 
-void apply_function(func_pcb f){
+void apply_function(func_pcb f, void * args){
 	int i;
 	pcb_s* pcb = NULL;
 
@@ -150,14 +150,12 @@ void apply_function(func_pcb f){
 		pcb = priority_lists[i];
 		if(pcb != NULL) {
 			do {
-				f(pcb);
+				f(pcb, args);
 			}
 			while(pcb != priority_lists[i]);
 		}
 	}
-
 }
-
 #endif
 
 
@@ -252,8 +250,10 @@ void create_process(func_t f, void* args, unsigned int stack_size) {
 
 int should_elect(struct pcb_s * pcb){
 	if(pcb->etatP == TERMINATED) {
+		unsigned int pcb_pid = pcb->pid;
 		delete_process(pcb);
-		// TODO Restart Process
+		apply_function(restart_waiting_PID_process, (void *)pcb_pid);
+		
 	}else if(pcb->etatP == WAITING) {
 		// Nothing to do
 	} else {
@@ -307,7 +307,7 @@ void elect()
 	current_pcb=next_pcb;
 	current_pcb->etatP = RUNNING;
 
-	apply_function(update_waiting);
+	apply_function(update_waiting, NULL);
 
 }
 

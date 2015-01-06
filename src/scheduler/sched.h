@@ -66,7 +66,7 @@ typedef struct pcb_s
 	
 } pcb_s;
 
-typedef void (*func_pcb) ( struct pcb_s * pcb);
+typedef void (*func_pcb) ( struct pcb_s * pcb,  void* args);
 
 void create_process_priority(func_t f, void* args, unsigned int stack_size, unsigned short priority);
 void create_process(func_t f, void* args, unsigned int stack_size);
