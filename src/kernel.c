@@ -1,9 +1,11 @@
 #include "preemptive-scheduler/hw.h"
 #include "preemptive-scheduler/sched.h"
 #include <stdlib.h>
-#include "mmu/translate.c"
+#include <stdint.h>
 
 unsigned int init_kern_translation_table (void);
+uint8_t* vMem_Alloc(unsigned int nbPages);
+void vMem_Free(uint8_t* ptr, unsigned int nbPages);
 
 void funcA()
 {
@@ -23,15 +25,12 @@ void funcB()
 //------------------------------------------------------------------------
 int kmain ( void )
 {
-	unsigned int test_pa;
 	init_hw();
+	init_kern_translation_table ();
 	create_process(funcB, NULL, STACK_SIZE);
 	create_process(funcA,NULL, STACK_SIZE);
 	start_sched();
-	init_kern_translation_table ();
-	configure_mmu_C();
-	test_pa=translate(0x8728);
-	start_mmu_C();
+
 	while(1);
 	/* Pas atteignable vues nos 2 fonctions */
 	return 0;

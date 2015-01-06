@@ -86,34 +86,46 @@ void init_table_occup_frame()
 	}
 }
 
-// TODO : METHODES SUIVANTES
 
 uint8_t* vMem_Alloc(unsigned int nbPages){
 	
 	int space = 0;
 	uint8_t* start_space_in_table = 0;
-		
+	int numDernierePage= 0;
 	uint8_t* i =pointer_table_occup_frame;
-	while(i<end_table_occup_frame || space == nbPages){
+	while(i<end_table_occup_frame && space < nbPages){
 		if((*i) == 0){
-			space++;
 			if (space == 0){
-				start_space_in_table = &i;
+				start_space_in_table = i;
 			}
+			space++;
+			
 		} else {
 			 space = 0;
 		}
 		i++;
+		numDernierePage++;
 	}
 	if (space == nbPages) {
-		// TODO : mettre à 1
-		return start_space_in_table; // TODO : on doit retourner un pointeur vers l'espace alloué, pas ça !
+		for(i=0; i<nbPages; i++)
+		{
+			uint8_t* frame = (uint8_t*)((int)start_space_in_table+i);
+			(*frame)=1;
+		}
+		return (uint8_t*)((numDernierePage - nbPages) << 12) ; // adresse logique première page allouée = numéro de la première page + 12 bits à 0 (index dans la page)
 	}
-	return 0;
+	return (uint8_t*)(-1); // Erreur
 }
 
-//void vMem_Free(uint8_t* ptr, unsigned int nbPages){
-//}
+void vMem_Free(uint8_t* ptr, unsigned int nbPages){
+	int numPage= (int)ptr >>12;
+	int i;
+	for(i=numPage; i<numPage+nbPages; i++)
+	{
+		uint8_t* frame_to_free= (uint8_t*) ((int)pointer_table_occup_frame+i);
+		*(frame_to_free)=0;
+	}
+}
 	
 unsigned int init_kern_translation_table (void) {	
 	
@@ -157,7 +169,9 @@ unsigned int init_kern_translation_table (void) {
 	}
 	
 
-				
+	configure_mmu_C();
+	//test_pa=translate(0x8728);
+	start_mmu_C();
 	init_table_occup_frame();
 				
 	return 0;
