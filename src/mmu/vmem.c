@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include "../preemptive-scheduler/phyAlloc.h"
+#include "../scheduler/phyAlloc.h"
 	
 #define PAGE_SIZE			 (4*1024*8)// 4KB
 #define SECON_LVL_TT_COUN 	 256 // 2⁸=256 entrees au lvl 2
