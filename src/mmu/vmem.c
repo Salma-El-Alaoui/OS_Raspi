@@ -1,5 +1,4 @@
 #include <stdint.h>
-#include "../preemptive-scheduler/phyAlloc.h"
 	
 #define PAGE_SIZE			 (4*1024*8)// 4KB
 #define SECON_LVL_TT_COUN 	 256 // 2⁸=256 entrees au lvl 2
@@ -81,7 +80,7 @@ void configure_mmu_C()
 void init_table_occup_frame()
 {
 	uint8_t* i;
-	for(i=pointer_table_occup_frame; i<end_table_occup_frame; i++){
+	for(i=(uint8_t*)pointer_table_occup_frame; i<(uint8_t*)end_table_occup_frame; i++){
 		(*i) = 0; // default : frame is free
 	}
 }
@@ -92,8 +91,8 @@ uint8_t* vMem_Alloc(unsigned int nbPages){
 	int space = 0;
 	uint8_t* start_space_in_table = 0;
 	int numDernierePage= 0;
-	uint8_t* i =pointer_table_occup_frame;
-	while(i<end_table_occup_frame && space < nbPages){
+	uint8_t* i = (uint8_t*)pointer_table_occup_frame;
+	while(i<(uint8_t*)end_table_occup_frame && space < nbPages){
 		if((*i) == 0){
 			if (space == 0){
 				start_space_in_table = i;
@@ -107,9 +106,10 @@ uint8_t* vMem_Alloc(unsigned int nbPages){
 		numDernierePage++;
 	}
 	if (space == nbPages) {
-		for(i=0; i<nbPages; i++)
+		int j;
+		for(j=0; j<nbPages; j++)
 		{
-			uint8_t* frame = (uint8_t*)((int)start_space_in_table+i);
+			uint8_t* frame = (uint8_t*)((int)start_space_in_table+j);
 			(*frame)=1;
 		}
 		return (uint8_t*)((numDernierePage - nbPages) << 12) ; // adresse logique première page allouée = numéro de la première page + 12 bits à 0 (index dans la page)
