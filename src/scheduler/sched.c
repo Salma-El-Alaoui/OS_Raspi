@@ -50,33 +50,108 @@ void waiting_loop(){
 // ----------------------------------------------------------------------------------------------------
 #ifdef OWN_SCHED
 void insert_process_loop(struct pcb_s * new_process, struct pcb_s ** pcb_head) {
-	//TODO
+	if(*pcb_head == NULL){
+		*pcb_head = new_process;
+	}
+	else{
+		if(new_process->key < (*pcb_head)->key){
+			insert_process_loop(new_process, &(*pcb_head)->pcb_left);
+		}
+		else{
+			insert_process_loop(new_process, &(*pcb_head)->pcb_right);
+		}
+		
+	}	
 }
 
 void insert_process(struct pcb_s * new_process) {
-	//TODO
+	insert_process_loop(new_process, &pcb_root);
 }
 
 void delete_process_loop(struct pcb_s * old_process, struct pcb_s ** pcb_head){
-	//TODO
+	if (*pcb_head == NULL) 	// empty tree or not in the tree
+		return;
+	if(old_process->pid < (*pcb_head)->pid)
+		delete_process_loop(old_process, &(*pcb_head)->pcb_left);
+	else if(old_process->pid > (*pcb_head)->pid)
+		delete_process_loop(old_process, &(*pcb_head)->pcb_right);
+	else
+		delete_found_process(*pcb_head);
+
+}
+
+void delete_found_process(struct pcb_s * old_process){
+
+	pcb_s * temp = old_process;
+  
+  	if (old_process->pcb_left == NULL) //no left child
+  	{
+		old_process = old_process->pcb_right;
+		phyAlloc_free(temp, sizeof(pcb_s));
+  	}
+
+  	else if (old_process->pcb_right == NULL) //no right child
+    {
+		old_process= old_process->pcb_left;
+		phyAlloc_free(temp, sizeof(pcb_s));
+    }
+
+  	else //left & right                           
+    {
+     	temp = old_process->pcb_left; //right-most node of left sub-tree
+     	while (temp->pcb_right != NULL)
+       		temp = temp->pcb_right; // we're there
+
+	//copy the roots' children to the node.
+	temp->pcb_right = old_process->pcb_right;
+	temp->pcb_left = old_process->pcb_left ;
+
+	//move the node to the root
+	//memcpy(old_process, temp, sizeof(pcb_s));
+	old_process = temp;
+	*(old_process->pcb_left)= *(old_process->pcb_left); 
+ 	*(old_process->pcb_right)= *(old_process->pcb_right); 
+	
+	//delete the duplicate node now
+	delete_process_loop(old_process->pcb_left, &temp);
+
+    }
 }
 
 void delete_process(struct pcb_s * old_process){
-	//TODO
+	delete_process_loop(old_process, &pcb_root);
 }
 
 struct pcb_s * find_process(unsigned int pid, struct pcb_s ** pcb_head){
-	//TODO
-	return NULL;
+	if (pcb_head == NULL)
+		return NULL;
+	else if(pid < (*pcb_head)->pid)	
+		return find_process(pid, &(*pcb_head)->pcb_left);
+	else if(pid > (*pcb_head)->pid)
+		return find_process(pid, &(*pcb_head)->pcb_right);
+	else	
+		return *pcb_head;
+
 }
 
 struct pcb_s * find_process_by_pid(unsigned int pid){
-	//TODO
-	return NULL;
+	
+	return find_process(pid, &pcb_root);
 }
 
-void apply_function(func_pcb f){
-	//TODO
+
+void apply_function_loop(func_pcb f, void * args, pcb_s ** pcb_head){
+	if (pcb_head == NULL)
+		return;
+	else
+	{
+		apply_function_loop(f, args, &(*pcb_head)->pcb_left);
+		f(*pcb_head, args);
+		apply_function_loop(f, args, &(*pcb_head)->pcb_right);
+	}
+}
+void apply_function(func_pcb f, void * args){
+	apply_function_loop(f, args, &pcb_root);
 }
 
 #endif
@@ -315,6 +390,7 @@ void elect()
 		next_pcb = elect_pcb_into_list(i);
 	}
 #elif defined OWN_SCHED
+	
 
 #endif
 	if(next_pcb == NULL){
