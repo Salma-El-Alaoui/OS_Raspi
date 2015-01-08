@@ -68,25 +68,16 @@ void insert_process(struct pcb_s * new_process) {
 	insert_process_loop(new_process, &pcb_root);
 }
 
-void delete_process_loop(struct pcb_s * old_process, struct pcb_s ** pcb_head){
-	if (*pcb_head == NULL) 	// empty tree or not in the tree
-		return;
-	if(old_process->pid < (*pcb_head)->pid)
-		delete_process_loop(old_process, &(*pcb_head)->pcb_left);
-	else if(old_process->pid > (*pcb_head)->pid)
-		delete_process_loop(old_process, &(*pcb_head)->pcb_right);
-	else
-		delete_found_process(*pcb_head);
+void delete_process(struct pcb_s * old_process){
+	pcb_s * temp = NULL;
 
-}
-
-void delete_found_process(struct pcb_s * old_process){
-
-	pcb_s * temp = old_process;
-  
   	if (old_process->pcb_left == NULL) //no left child
   	{
-		old_process = old_process->pcb_right;
+  		temp = old_process->pcb_right;
+  		// Free stack
+		phyAlloc_free((void *)old_process->stack_base, old_process->stack_size);
+		*old_process = *(old_process->pcb_right);
+		// Free PCB
 		phyAlloc_free(temp, sizeof(pcb_s));
   	}
 
@@ -116,10 +107,6 @@ void delete_found_process(struct pcb_s * old_process){
 		delete_process_loop(old_process->pcb_left, &temp);
 
     }
-}
-
-void delete_process(struct pcb_s * old_process){
-	delete_process_loop(old_process, &pcb_root);
 }
 
 struct pcb_s * find_process(unsigned int pid, struct pcb_s ** pcb_head){

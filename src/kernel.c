@@ -33,7 +33,8 @@ int kmain ( void )
 	create_process(funcB, NULL, STACK_SIZE);
 	create_process(funcA, NULL, STACK_SIZE);
 #endif
-	start_sched();
+	
+	//start_sched();
 	while(1);
 	/* Pas atteignable vues nos 2 fonctions */
 	return 0;
