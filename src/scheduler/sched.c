@@ -102,18 +102,18 @@ void delete_found_process(struct pcb_s * old_process){
      	while (temp->pcb_right != NULL)
        		temp = temp->pcb_right; // we're there
 
-	//copy the roots' children to the node.
-	temp->pcb_right = old_process->pcb_right;
-	temp->pcb_left = old_process->pcb_left ;
+		//copy the roots' children to the node.
+		temp->pcb_right = old_process->pcb_right;
+		temp->pcb_left = old_process->pcb_left ;
 
-	//move the node to the root
-	//memcpy(old_process, temp, sizeof(pcb_s));
-	old_process = temp;
-	*(old_process->pcb_left)= *(old_process->pcb_left); 
- 	*(old_process->pcb_right)= *(old_process->pcb_right); 
-	
-	//delete the duplicate node now
-	delete_process_loop(old_process->pcb_left, &temp);
+		//move the node to the root
+		//memcpy(old_process, temp, sizeof(pcb_s));
+		old_process = temp;
+		*(old_process->pcb_left)= *(old_process->pcb_left); 
+	 	*(old_process->pcb_right)= *(old_process->pcb_right); 
+		
+		//delete the duplicate node now
+		delete_process_loop(old_process->pcb_left, &temp);
 
     }
 }
@@ -123,19 +123,25 @@ void delete_process(struct pcb_s * old_process){
 }
 
 struct pcb_s * find_process(unsigned int pid, struct pcb_s ** pcb_head){
-	if (pcb_head == NULL)
+	if (pcb_head == NULL){
 		return NULL;
-	else if(pid < (*pcb_head)->pid)	
-		return find_process(pid, &(*pcb_head)->pcb_left);
-	else if(pid > (*pcb_head)->pid)
-		return find_process(pid, &(*pcb_head)->pcb_right);
-	else	
-		return *pcb_head;
+	} else if((*pcb_head)->pid == pid){
+		return (*pcb_head);
+	} else {
+		pcb_s * pcb = find_process(pid, &(*pcb_head)->pcb_left);
+		if(pcb != NULL){
+			return pcb;
+		}
+		pcb = find_process(pid, &(*pcb_head)->pcb_right);
+		if(pcb != NULL){
+			return pcb;
+		}
+		return NULL;
+	}
 
 }
 
 struct pcb_s * find_process_by_pid(unsigned int pid){
-	
 	return find_process(pid, &pcb_root);
 }
 
@@ -150,6 +156,7 @@ void apply_function_loop(func_pcb f, void * args, pcb_s ** pcb_head){
 		apply_function_loop(f, args, &(*pcb_head)->pcb_right);
 	}
 }
+
 void apply_function(func_pcb f, void * args){
 	apply_function_loop(f, args, &pcb_root);
 }
