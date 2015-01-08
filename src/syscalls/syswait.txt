@@ -1,0 +1,12 @@
+Appel syswait : Utiliser un ctw_switch (à modifier pour que ce soit facile)
+
+char* stack_base = phyAlloc...
+uint32_t* sp = stack_base + stack_size
+sp--
+*sp = 0x53 //Mode d'exe du processeur
+sp--
+*sp = &start_current_process
+sp -= 14 //pour le premier dépilement des registres
+
+
+Décaler dans la mémoire pour le Tas, dans hw.h, modifier HEAP_BASE

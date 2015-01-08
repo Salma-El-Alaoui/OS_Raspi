@@ -51,7 +51,7 @@ reset:
 
 hang: b hang
 undefined:	 b undefined
-swi:	 b swi
+swi:	 b SWIHandler
 prefetch:	b prefetch
 data:	 b data
 unused:	b unused
