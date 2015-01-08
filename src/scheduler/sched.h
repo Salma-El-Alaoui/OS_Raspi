@@ -68,7 +68,7 @@ typedef struct pcb_s
 
 typedef void (*func_pcb) ( struct pcb_s * pcb,  void* args);
 
-void create_process_priority(func_t f, void* args, unsigned int stack_size, unsigned short priority);
+pcb_s* create_process_priority(func_t f, void* args, unsigned int stack_size, unsigned short priority);
 void create_process(func_t f, void* args, unsigned int stack_size);
 
 void start_sched();
@@ -78,6 +78,10 @@ void wait(int nbQuantums);
 void kill(unsigned int process_id);
 
 void waitpid(unsigned int process_id);
+
+
+// TODO delete
+void delete_process(struct pcb_s * pcb);
 
 
 #endif

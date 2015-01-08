@@ -70,42 +70,39 @@ void insert_process(struct pcb_s * new_process) {
 
 void delete_process(struct pcb_s * old_process){
 	pcb_s * temp = NULL;
+	// Free
+	phyAlloc_free((void *)old_process->stack_base, old_process->stack_size);
 
   	if (old_process->pcb_left == NULL) //no left child
   	{
   		temp = old_process->pcb_right;
-  		// Free stack
-		phyAlloc_free((void *)old_process->stack_base, old_process->stack_size);
 		*old_process = *(old_process->pcb_right);
+
+// TODO CHILDREN
+
 		// Free PCB
 		phyAlloc_free(temp, sizeof(pcb_s));
   	}
 
   	else if (old_process->pcb_right == NULL) //no right child
     {
-		old_process= old_process->pcb_left;
+		temp = old_process->pcb_left;
+		*old_process = *(old_process->pcb_left);
+		// Free PCB
 		phyAlloc_free(temp, sizeof(pcb_s));
     }
-
   	else //left & right                           
     {
      	temp = old_process->pcb_left; //right-most node of left sub-tree
      	while (temp->pcb_right != NULL)
        		temp = temp->pcb_right; // we're there
-
 		//copy the roots' children to the node.
 		temp->pcb_right = old_process->pcb_right;
 		temp->pcb_left = old_process->pcb_left ;
-
 		//move the node to the root
 		//memcpy(old_process, temp, sizeof(pcb_s));
-		old_process = temp;
-		*(old_process->pcb_left)= *(old_process->pcb_left); 
-	 	*(old_process->pcb_right)= *(old_process->pcb_right); 
-		
-		//delete the duplicate node now
-		delete_process_loop(old_process->pcb_left, &temp);
-
+		*old_process = *(temp);
+		phyAlloc_free(temp, sizeof(pcb_s));
     }
 }
 
@@ -297,13 +294,16 @@ void init_pcb(struct pcb_s * pcb,func_t f, void* args, unsigned int stack_size, 
 		pcb->priority= priority;
 	}
 #endif
-
+#ifdef PRIORITY_SCHED
+	pcb->key = pcb->priority * 10;
+#endif
 }
 
-void create_process_priority(func_t f, void* args, unsigned int stack_size, unsigned short priority) {
+pcb_s * create_process_priority(func_t f, void* args, unsigned int stack_size, unsigned short priority) {
 	pcb_s * pcb = phyAlloc_alloc(sizeof(pcb_s));	
 	init_pcb(pcb,f,args,stack_size, priority);
 	insert_process(pcb);
+	return pcb;
 }
 
 void start_sched()

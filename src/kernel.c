@@ -27,13 +27,14 @@ int kmain ( void )
 	init_hw();
 
 #ifdef PRIORITY_SCHED
-	create_process_priority(funcB, NULL, STACK_SIZE, 5);
-	create_process_priority(funcA, NULL, STACK_SIZE, 2);
+	pcb_s * pcb = create_process_priority(funcB, NULL, STACK_SIZE, 5);
+	create_process_priority(funcA, NULL, STACK_SIZE, 7);
+	delete_process(pcb);
 #else
 	create_process(funcB, NULL, STACK_SIZE);
 	create_process(funcA, NULL, STACK_SIZE);
 #endif
-	
+
 	//start_sched();
 	while(1);
 	/* Pas atteignable vues nos 2 fonctions */
