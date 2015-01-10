@@ -163,7 +163,7 @@ struct pcb_s * find_parent( struct pcb_s* node, struct pcb_s ** pcb_head )
 {
 	if (pcb_head == NULL){
 		return NULL;
-	} else if((*pcb_head)->pcb_right == node && (*pcb_head)->pcb_left == node ){
+	} else if(((*pcb_head)->pcb_right == node) || ((*pcb_head)->pcb_left == node)){
 		return (*pcb_head);
 	} else {
 		pcb_s * pcb = find_parent(node, &(*pcb_head)->pcb_left);
