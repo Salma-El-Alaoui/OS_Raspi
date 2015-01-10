@@ -7,10 +7,7 @@
 struct pcb_s * current_pcb = NULL;
 struct pcb_s * trash_pcb = NULL;
 
-
-#ifdef RR_SCHED
-pcb_s * firstTime_pcb;
-#elif defined FIXED_PRIORITY_SCHED
+#ifdef FIXED_PRIORITY_SCHED
 pcb_s* priority_lists[PRIORITY_NUMBER];	//Priority Array
 #elif defined OWN_SCHED
 struct pcb_s * pcb_root;	//Tree root
@@ -211,7 +208,6 @@ struct pcb_s * find_process_by_pid(unsigned int pid){
 	return find_process(pid, &pcb_root);
 }
 
-
 void apply_function_loop(func_pcb f, void * args, pcb_s ** pcb_head){
 	if (pcb_head == NULL)
 		return;
@@ -292,19 +288,20 @@ struct pcb_s * find_process_by_pid(unsigned int pid){
 
 void apply_function(func_pcb f, void * args){
 	int i;
-	pcb_s* pcb = NULL;
+	pcb_s* looking_pcb = NULL;
 
 	if(priority_lists == NULL) {
 		return;	
 	}
 
 	for(i=0;i<PRIORITY_NUMBER;i++){
-		pcb = priority_lists[i];
-		if(pcb != NULL) {
+		looking_pcb = priority_lists[i];
+		if(looking_pcb != NULL) {
 			do {
-				f(pcb, args);
+				f(looking_pcb, args);
+				looking_pcb = looking_pcb->pcbNext;
 			}
-			while(pcb != priority_lists[i]);
+			while(looking_pcb != priority_lists[i]);
 		}
 	}
 }
@@ -314,20 +311,53 @@ void apply_function(func_pcb f, void * args){
 #ifdef RR_SCHED
 void insert_process(struct pcb_s * pcb)
 {
-	//TODO
+	if(current_pcb == NULL){
+		current_pcb = pcb;
+		pcb->pcbNext = pcb;
+		pcb->pcbPrevious = pcb;
+	} else {
+		pcb->pcbNext = current_pcb;
+		pcb->pcbPrevious = current_pcb->pcbPrevious;
+		current_pcb->pcbPrevious->pcbNext=pcb;
+		current_pcb->pcbPrevious = pcb;
+	}
 }
 
 void delete_process(struct pcb_s * pcb){
-	//TODO
+	if(current_pcb == pcb){
+		if(pcb->pcbPrevious == pcb){
+			current_pcb = NULL;
+		} else {
+			current_pcb = pcb->pcbPrevious;
+		}
+	}
+	pcb->pcbPrevious->pcbNext = pcb->pcbNext;
+	pcb->pcbNext->pcbPrevious = pcb->pcbPrevious;
+	phyAlloc_free((void *)pcb->stack_base, pcb->stack_size);
+	phyAlloc_free(pcb, sizeof(pcb_s));
 }
 
 struct pcb_s * find_process_by_pid(unsigned int pid){
-	//TODO
+	if(current_pcb != NULL) {
+		pcb_s* looking_pcb= current_pcb;
+		do {
+			if(looking_pcb->pid == pid){
+				return looking_pcb;
+			}
+			looking_pcb = looking_pcb->pcbNext;
+		} while(looking_pcb != current_pcb);
+	}
 	return NULL;
 }
 
-void apply_function(func_pcb f){
-	//TODO
+void apply_function(func_pcb f, void * args){
+	if(current_pcb != NULL) {
+		pcb_s* looking_pcb= current_pcb;
+		do {
+			f(looking_pcb, args);
+			looking_pcb = looking_pcb->pcbNext;
+		} while(looking_pcb != current_pcb);
+	}
 }
 #endif
 
@@ -390,14 +420,12 @@ pcb_s * create_process_priority(func_t f, void* args, unsigned int stack_size, u
 
 void start_sched()
 {
-#ifdef RR_SCHED
-	firstTime_pcb->pcbNext = current_pcb;
-	current_pcb = firstTime_pcb;
-#else
 	trash_pcb =  phyAlloc_alloc(sizeof(pcb_s));	
 	init_pcb(trash_pcb, waiting_loop, NULL, STACK_SIZE, 0);
-	current_pcb = trash_pcb;
+#ifdef RR_SCHED
+	trash_pcb->pcbNext = current_pcb;
 #endif
+	current_pcb = trash_pcb;
 
 	//On arme le timer
 	set_tick_and_enable_timer();
