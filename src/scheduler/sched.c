@@ -467,21 +467,22 @@ void elect()
 		next_pcb = elect_pcb_into_list(i);
 	}
 #elif defined OWN_SCHED
-	struct pcb_s* looking_pcb = current_pcb;
+	struct pcb_s* looking_pcb = pcb_root;
 	struct pcb_s* parent = NULL;
 	int found = 0;
-	while (found !=1){
+	while (found !=1 && looking_pcb != NULL){
 		while(looking_pcb->pcb_right!=NULL){
 			parent = looking_pcb;
 			looking_pcb = looking_pcb->pcb_right;
 		}
 		if(should_elect(looking_pcb)){
-			next_pcb = looking_pcb;
 			found=1;
 		}			
 		else
 			looking_pcb=parent->pcb_left;	
 	}
+	
+	next_pcb = looking_pcb;
 
 #endif
 	if(next_pcb == NULL){
