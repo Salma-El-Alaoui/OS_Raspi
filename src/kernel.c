@@ -9,7 +9,7 @@
 void funcA()
 {
 	int cptA = 0;
-	while (cptA<10000000) {
+	while (1) {
 		cptA ++;		
 	}
 
@@ -18,7 +18,6 @@ void funcA()
 void funcB()
 {
 	int cptB = 1;
-	sys_wait_pid(2);
 	while (1) {
 		cptB += 2 ;
 	}

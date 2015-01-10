@@ -81,7 +81,15 @@ void init_table_occup_frame()
 {
 	uint8_t* i;
 	for(i=(uint8_t*)pointer_table_occup_frame; i<(uint8_t*)end_table_occup_frame; i++){
-		(*i) = 0; // default : frame is free
+		if(i<(pointer_table_occup_frame + (0x473000/0x1000)))
+		{
+			// Espace déjà utilisé (stack, interrupt vectors, page table...)
+			(*i)=1;
+		}
+		else
+		{
+			(*i) = 0; // default : frame is free
+		}	
 	}
 }
 
