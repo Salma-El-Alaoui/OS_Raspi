@@ -284,7 +284,7 @@ struct pcb_s* elect_pcb_into_list(unsigned short priority){
 	int should_execute = 0;	
 	pcb_s *head_pcb = priority_lists[priority];
 	pcb_s *looking_pcb = head_pcb;
-	if(head_pcb == NULL){	// TODO Put it in the loop ????? (Delete)
+	if(head_pcb == NULL){
 		return NULL;
 	}
 	do{
@@ -292,6 +292,7 @@ struct pcb_s* elect_pcb_into_list(unsigned short priority){
 		should_execute = should_elect(looking_pcb);
 	} while(should_execute == 0 && looking_pcb != head_pcb);
 	if(should_execute){
+		priority_lists[priority] = looking_pcb;
 		return looking_pcb;
 	}
 	return NULL;
