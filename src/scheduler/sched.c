@@ -1,8 +1,7 @@
 #include "sched.h"
-#include "phyAlloc.h"
 #include "hw.h"
 #include <stdlib.h>
-
+#include "../mmu/vmem.h"
 
 struct pcb_s * current_pcb = NULL;
 struct pcb_s * trash_pcb = NULL;
@@ -111,9 +110,10 @@ void delete_process(struct pcb_s * pcb){
 		old_pcb->pcbNext->pcbPrevious = old_pcb->pcbPrevious;
 	}
 	// Free memory space reserved for deleted process
-	phyAlloc_free((void *)old_pcb->stack_base, old_pcb->stack_size);
-	phyAlloc_free(old_pcb, sizeof(pcb_s));
-
+	//phyAlloc_free((void *)old_pcb->stack_base, old_pcb->stack_size);
+	//phyAlloc_free(old_pcb, sizeof(pcb_s));
+	vMem_Free((uint8_t*)old_pcb->stack_base, old_pcb->stack_size/4096+1);
+	vMem_Free((uint8_t*)old_pcb, sizeof(pcb_s)/4096+1);
 }
 
 struct pcb_s * find_process_by_pid(unsigned int pid){
@@ -235,7 +235,8 @@ void init_pcb(struct pcb_s * pcb,func_t f, void* args, unsigned int stack_size, 
 	pcb->pid_waiting = -1;
 
 //	pcb->instruct_address = (unsigned int) &start_current_process;
-	pcb->stack_base = (unsigned int) phyAlloc_alloc(stack_size);
+	//pcb->stack_base = (unsigned int) phyAlloc_alloc(stack_size);
+	pcb->stack_base = (unsigned int) vMem_Alloc(stack_size/4096+1);
 	pcb->stack_pointer = pcb->stack_base + stack_size - sizeof(int);
 	
 	// On stocke CPRS, 13 veut dire mode system
@@ -263,7 +264,8 @@ void init_pcb(struct pcb_s * pcb,func_t f, void* args, unsigned int stack_size, 
 }
 
 void create_process_priority(func_t f, void* args, unsigned int stack_size, unsigned short priority) {
-	pcb_s * pcb = phyAlloc_alloc(sizeof(pcb_s));	
+	//pcb_s * pcb = phyAlloc_alloc(sizeof(pcb_s));
+	pcb_s * pcb = (pcb_s * ) vMem_Alloc(sizeof(pcb_s)/4096+1);	
 	init_pcb(pcb,f,args,stack_size, priority);
 	insert_process(pcb);
 }
@@ -310,7 +312,7 @@ struct pcb_s* elect_pcb_into_list(unsigned short priority){
 	int should_execute = 0;	
 	pcb_s *head_pcb = priority_lists[priority];
 	pcb_s *looking_pcb = head_pcb;
-	if(head_pcb == NULL){	// TODO Put it in the loop ????? (Delete)
+	if(head_pcb == NULL){
 		return NULL;
 	}
 	do{
@@ -318,6 +320,7 @@ struct pcb_s* elect_pcb_into_list(unsigned short priority){
 		should_execute = should_elect(looking_pcb);
 	} while(should_execute == 0 && looking_pcb != head_pcb);
 	if(should_execute){
+		priority_lists[priority] = looking_pcb;
 		return looking_pcb;
 	}
 	return NULL;
