@@ -414,6 +414,7 @@ void create_process(func_t f, void* args, unsigned int stack_size) {
 //										SWITCH
 // ----------------------------------------------------------------------------------------------------
 
+
 int should_elect(struct pcb_s * pcb){
 	if(pcb->etatP == TERMINATED) {
 		unsigned int pcb_pid = pcb->pid;
@@ -466,7 +467,21 @@ void elect()
 		next_pcb = elect_pcb_into_list(i);
 	}
 #elif defined OWN_SCHED
-	
+	struct pcb_s* looking_pcb = current_pcb;
+	struct pcb_s* parent = NULL;
+	int found = 0;
+	while (found !=1){
+		while(looking_pcb->pcb_right!=NULL){
+			parent = looking_pcb;
+			looking_pcb = looking_pcb->pcb_right;
+		}
+		if(should_elect(looking_pcb)){
+			next_pcb = looking_pcb;
+			found=1;
+		}			
+		else
+			looking_pcb=parent->pcb_left;	
+	}
 
 #endif
 	if(next_pcb == NULL){
