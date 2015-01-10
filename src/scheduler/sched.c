@@ -68,7 +68,7 @@ void insert_process(struct pcb_s * new_process) {
 	insert_process_loop(new_process, &pcb_root);
 }
 
-void delete_process(struct pcb_s * old_process){
+/*void delete_process(struct pcb_s * old_process){
 	pcb_s * temp = NULL;
 	// Free
 	phyAlloc_free((void *)old_process->stack_base, old_process->stack_size);
@@ -104,7 +104,89 @@ void delete_process(struct pcb_s * old_process){
 		*old_process = *(temp);
 		phyAlloc_free(temp, sizeof(pcb_s));
     }
+}*/
+
+//new delete
+
+void delete_process_loop(struct pcb_s * process, struct pcb_s * parent)
+{
+	struct pcb_s* successor; //successsor of the node to delete
+	struct pcb_s* successor_parent;
+
+	//no left child (works when the node has neither a right nor a left child)
+	if( process->pcb_left == NULL){
+		if (parent == NULL)
+			pcb_root= process->pcb_right;
+		else if(process == parent->pcb_left)
+			parent->pcb_left = process->pcb_right;
+		else
+			parent->pcb_right = process->pcb_right;
+	}
+
+	//no right child
+	else if( process->pcb_right == NULL){
+		if (parent == NULL)
+			pcb_root= process->pcb_left;
+		else if(process == parent->pcb_left)
+			parent->pcb_left = process->pcb_left;
+		else
+			parent->pcb_right = process->pcb_left;
+	}
+
+	//two children
+	else {
+		successor = process->pcb_right;
+		successor_parent = process;
+		while( successor->pcb_left != NULL){
+			successor_parent = successor;
+			successor= successor->pcb_left;
+		}
+		if(parent==NULL)
+			pcb_root = successor;
+		else if(process == parent->pcb_left)
+			parent->pcb_left = successor;
+		else
+			parent->pcb_right = successor;
+
+		if(successor == successor_parent->pcb_left)
+			successor_parent->pcb_left = successor->pcb_right;
+		else
+			successor_parent->pcb_right = successor->pcb_right;
+		
+		successor->pcb_left = process->pcb_left;
+		successor->pcb_right = process->pcb_right;
+	}
+
+	phyAlloc_free((void *)process->stack_base, process->stack_size);
+	phyAlloc_free(process, sizeof(pcb_s));
+
 }
+
+struct pcb_s * find_parent( struct pcb_s* node, struct pcb_s ** pcb_head )
+{
+	if (pcb_head == NULL){
+		return NULL;
+	} else if((*pcb_head)->pcb_right == node && (*pcb_head)->pcb_left == node ){
+		return (*pcb_head);
+	} else {
+		pcb_s * pcb = find_parent(node, &(*pcb_head)->pcb_left);
+		if(pcb != NULL){
+			return pcb;
+		}
+		pcb = find_parent(node, &(*pcb_head)->pcb_right);
+		if(pcb != NULL){
+			return pcb;
+		}
+		return NULL;
+	}
+
+}
+
+delete_process(struct pcb_s * pcb)
+{
+	delete_process_loop(pcb, find_parent(pcb, &pcb_root));
+}
+
 
 struct pcb_s * find_process(unsigned int pid, struct pcb_s ** pcb_head){
 	if (pcb_head == NULL){
