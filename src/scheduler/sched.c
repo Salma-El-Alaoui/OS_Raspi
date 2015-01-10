@@ -186,8 +186,10 @@ void delete_process(struct pcb_s * pcb){
 	}
 	pcb->pcbPrevious->pcbNext = pcb->pcbNext;
 	pcb->pcbNext->pcbPrevious = pcb->pcbPrevious;
-	phyAlloc_free((void *)pcb->stack_base, pcb->stack_size);
-	phyAlloc_free(pcb, sizeof(pcb_s));
+	//phyAlloc_free((void *)pcb->stack_base, pcb->stack_size);
+	//phyAlloc_free(pcb, sizeof(pcb_s));
+	vMem_Free((uint8_t*)pcb->stack_base, pcb->stack_size/4096+1);
+	vMem_Free((uint8_t*)pcb, sizeof(pcb_s)/4096+1);
 }
 
 struct pcb_s * find_process_by_pid(unsigned int pid){
@@ -272,7 +274,8 @@ void create_process_priority(func_t f, void* args, unsigned int stack_size, unsi
 
 void start_sched()
 {
-	trash_pcb =  phyAlloc_alloc(sizeof(pcb_s));	
+	//trash_pcb =  phyAlloc_alloc(sizeof(pcb_s));
+	trash_pcb =  (pcb_s * ) vMem_Alloc(sizeof(pcb_s)/4096+1);	
 	init_pcb(trash_pcb, waiting_loop, NULL, STACK_SIZE, 0);
 #ifdef RR_SCHED
 	trash_pcb->pcbNext = current_pcb;
