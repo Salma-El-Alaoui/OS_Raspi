@@ -161,7 +161,7 @@ void delete_process_loop(struct pcb_s * process, struct pcb_s * parent)
 
 struct pcb_s * find_parent( struct pcb_s* node, struct pcb_s ** pcb_head )
 {
-	if (pcb_head == NULL){
+	if (*pcb_head == NULL){
 		return NULL;
 	} else if(((*pcb_head)->pcb_right == node) || ((*pcb_head)->pcb_left == node)){
 		return (*pcb_head);
@@ -177,6 +177,8 @@ struct pcb_s * find_parent( struct pcb_s* node, struct pcb_s ** pcb_head )
 		return NULL;
 	}
 
+
+
 }
 
 delete_process(struct pcb_s * pcb)
@@ -186,7 +188,7 @@ delete_process(struct pcb_s * pcb)
 
 
 struct pcb_s * find_process(unsigned int pid, struct pcb_s ** pcb_head){
-	if (pcb_head == NULL){
+	if (*pcb_head == NULL){
 		return NULL;
 	} else if((*pcb_head)->pid == pid){
 		return (*pcb_head);
@@ -209,7 +211,7 @@ struct pcb_s * find_process_by_pid(unsigned int pid){
 }
 
 void apply_function_loop(func_pcb f, void * args, pcb_s ** pcb_head){
-	if (pcb_head == NULL)
+	if (*pcb_head == NULL)
 		return;
 	else
 	{

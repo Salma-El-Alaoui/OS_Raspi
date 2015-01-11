@@ -36,12 +36,12 @@ int kmain ( void )
 #ifdef PRIORITY_SCHED
 	pcb_s * pcb = create_process_priority(funcB, NULL, STACK_SIZE, 5);
 	create_process_priority(funcA, NULL, STACK_SIZE, 7);
-	delete_process(pcb);
+	//delete_process(pcb);
 #else
 	create_process(funcB, NULL, STACK_SIZE);
 	create_process(funcA, NULL, STACK_SIZE);
 #endif
-	//start_sched();
+	start_sched();
 	while(1);
 	/* Pas atteignable vues nos 2 fonctions */
 	return 0;
