@@ -332,6 +332,15 @@ struct pcb_s* elect_pcb_into_list(unsigned short priority){
 
 void elect()
 {
+	/*static int boolean = 0;
+	if(boolean){
+		led_on();
+		boolean = 1;
+	} else {
+		led_off();
+		boolean = 0;
+	}*/
+
 	pcb_s* next_pcb = NULL; //Will be executed / Iterator
 	pcb_s* tmp_del_pcb = NULL; //Delete Case
 	
@@ -360,7 +369,6 @@ void elect()
 	current_pcb->etatP = RUNNING;
 
 	apply_function(update_waiting, NULL);
-
 }
 
 void __attribute__ ((naked)) ctx_switch()

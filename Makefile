@@ -2,7 +2,7 @@ ARMGNU ?= arm-none-eabi
 # -DOWN_SCHED
 # -DFIXED_PRIORITY_SCHED
 # -DRR_SCHED
-CFLAGS = -Wall -nostdlib -fomit-frame-pointer -mno-apcs-frame -nostartfiles -ffreestanding -g -march=armv6z -marm -mthumb-interwork -DFIXED_PRIORITY_SCHED
+CFLAGS = -Wall -nostdlib -fomit-frame-pointer -mno-apcs-frame -nostartfiles -ffreestanding -g -march=armv6z -marm -mthumb-interwork -DRR_SCHED
 ASFLAGS = -g -march=armv6z
 
 C_FILES=kernel.c
@@ -12,12 +12,16 @@ MMU_FILES = $(addprefix mmu/,vmem.c)
 C_FILES+= $(MMU_FILES)
 SYSCALLS_FILES = $(addprefix syscalls/,syscall.c)
 C_FILES+= $(SYSCALLS_FILES)
+VIDEO_FILES = $(addprefix video/,fb.c pwm.c)
+C_FILES+= $(VIDEO_FILES)
 AS_FILES=vectors.s
+AUDIO_FILES=tune.wav
 
 SRC_DIR = src/
 BIN_DIR = bin/
 OBJ = $(patsubst %.s,%.o,$(AS_FILES))
 OBJ += $(patsubst %.c,%.o,$(C_FILES))
+OBJ += $(patsubst %.wav,%.o,$(AUDIO_FILES))
 MEMMAP = $(SRC_DIR)memmap
 
 OBJS = $(addprefix $(BIN_DIR),$(OBJ))
@@ -36,6 +40,9 @@ $(BIN_DIR)%.o : $(SRC_DIR)%.c
 $(BIN_DIR)%.o : $(SRC_DIR)%.s
 	mkdir -p $(dir $@)
 	$(ARMGNU)-as $(ASFLAGS) $< -o $@
+
+$(BIN_DIR)%.o : $(SRC_DIR)%.wav
+	$(ARMGNU)-ld -s -r -o $@ -b binary $^
 
 kernel : $(MEMMAP) $(OBJS)
 	$(ARMGNU)-ld $(OBJS) -T $(MEMMAP) -o $(BIN_DIR)kernel.elf
