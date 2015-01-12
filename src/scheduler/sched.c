@@ -266,10 +266,12 @@ void init_pcb(struct pcb_s * pcb,func_t f, void* args, unsigned int stack_size, 
 }
 
 void create_process_priority(func_t f, void* args, unsigned int stack_size, unsigned short priority) {
+	DISABLE_IRQ();
 	//pcb_s * pcb = phyAlloc_alloc(sizeof(pcb_s));
 	pcb_s * pcb = (pcb_s * ) vMem_Alloc(sizeof(pcb_s)/4096+1);	
 	init_pcb(pcb,f,args,stack_size, priority);
 	insert_process(pcb);
+	ENABLE_IRQ();
 }
 
 void start_sched()
@@ -332,14 +334,14 @@ struct pcb_s* elect_pcb_into_list(unsigned short priority){
 
 void elect()
 {
-	/*static int boolean = 0;
+	static int boolean = 0;
 	if(boolean){
 		led_on();
-		boolean = 1;
+		boolean = 0;
 	} else {
 		led_off();
-		boolean = 0;
-	}*/
+		boolean = 1;
+	}
 
 	pcb_s* next_pcb = NULL; //Will be executed / Iterator
 	pcb_s* tmp_del_pcb = NULL; //Delete Case

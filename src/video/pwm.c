@@ -81,4 +81,5 @@ audio_test()
       *(pwm+BCM2835_PWM_STATUS) = ERRORMASK;
     }
   }
+  i++;
 }

@@ -7,37 +7,30 @@
 #include <stdint.h>
 
 
-
-void funcA()
-{
-	int cptA = 0;
-	while (1) {
-		cptA++;
-		led_on();
-//		ctx_switch();		
-	}
-
-}
-
-void funcB()
-{
-	int cptB = 1;
-	while (1) {
-		cptB++;
-		led_off();
-//		ctx_switch();		
-	}
-}
-
 void funcC()
 {
-	int cptB = 1;
 	while (1) {
 		audio_test();
 	}
 }
 
+void funcA()
+{
+	sys_wait(10);
+	create_process(funcC, NULL, STACK_SIZE);
+	while(1){
+		//led_on();
+		//ctx_switch();		
+	};
+}
 
+void funcB()
+{
+	while (1) {
+		//led_off();
+		//ctx_switch();		
+	}
+}
 
 //------------------------------------------------------------------------
 int kmain ( void )
@@ -52,7 +45,6 @@ int kmain ( void )
 	create_process_priority(funcA, NULL, STACK_SIZE, 2);
 	create_process_priority(funcC, NULL, STACK_SIZE, 2);
 #else
-	create_process(funcC, NULL, STACK_SIZE);
 	create_process(funcB, NULL, STACK_SIZE);
 	create_process(funcA, NULL, STACK_SIZE);
 #endif
