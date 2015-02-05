@@ -46,33 +46,182 @@ void waiting_loop(){
 // ----------------------------------------------------------------------------------------------------
 #ifdef OWN_SCHED
 void insert_process_loop(struct pcb_s * new_process, struct pcb_s ** pcb_head) {
-	//TODO
+	if(*pcb_head == NULL){
+		*pcb_head = new_process;
+	}
+	else{
+		if(new_process->key < (*pcb_head)->key){
+			insert_process_loop(new_process, &(*pcb_head)->pcb_left);
+		}
+		else{
+			insert_process_loop(new_process, &(*pcb_head)->pcb_right);
+		}
+		
+	}	
 }
 
 void insert_process(struct pcb_s * new_process) {
-	//TODO
+	insert_process_loop(new_process, &pcb_root);
 }
 
-void delete_process_loop(struct pcb_s * old_process, struct pcb_s ** pcb_head){
-	//TODO
+/*void delete_process(struct pcb_s * old_process){
+	pcb_s * temp = NULL;
+	// Free
+	phyAlloc_free((void *)old_process->stack_base, old_process->stack_size);
+
+  	if (old_process->pcb_left == NULL) //no left child
+  	{
+  		temp = old_process->pcb_right;
+		*old_process = *(old_process->pcb_right);
+
+// TODO CHILDREN
+
+		// Free PCB
+		phyAlloc_free(temp, sizeof(pcb_s));
+  	}
+
+  	else if (old_process->pcb_right == NULL) //no right child
+    {
+		temp = old_process->pcb_left;
+		*old_process = *(old_process->pcb_left);
+		// Free PCB
+		phyAlloc_free(temp, sizeof(pcb_s));
+    }
+  	else //left & right                           
+    {
+     	temp = old_process->pcb_left; //right-most node of left sub-tree
+     	while (temp->pcb_right != NULL)
+       		temp = temp->pcb_right; // we're there
+		//copy the roots' children to the node.
+		temp->pcb_right = old_process->pcb_right;
+		temp->pcb_left = old_process->pcb_left ;
+		//move the node to the root
+		//memcpy(old_process, temp, sizeof(pcb_s));
+		*old_process = *(temp);
+		phyAlloc_free(temp, sizeof(pcb_s));
+    }
+}*/
+
+//new delete
+
+void delete_process_loop(struct pcb_s * process, struct pcb_s * parent)
+{
+	struct pcb_s* successor; //successsor of the node to delete
+	struct pcb_s* successor_parent;
+
+	//no left child (works when the node has neither a right nor a left child)
+	if( process->pcb_left == NULL){
+		if (parent == NULL)
+			pcb_root= process->pcb_right;
+		else if(process == parent->pcb_left)
+			parent->pcb_left = process->pcb_right;
+		else
+			parent->pcb_right = process->pcb_right;
+	}
+
+	//no right child
+	else if( process->pcb_right == NULL){
+		if (parent == NULL)
+			pcb_root= process->pcb_left;
+		else if(process == parent->pcb_left)
+			parent->pcb_left = process->pcb_left;
+		else
+			parent->pcb_right = process->pcb_left;
+	}
+
+	//two children
+	else {
+		successor = process->pcb_right;
+		successor_parent = process;
+		while( successor->pcb_left != NULL){
+			successor_parent = successor;
+			successor= successor->pcb_left;
+		}
+		if(parent==NULL)
+			pcb_root = successor;
+		else if(process == parent->pcb_left)
+			parent->pcb_left = successor;
+		else
+			parent->pcb_right = successor;
+
+		if(successor == successor_parent->pcb_left)
+			successor_parent->pcb_left = successor->pcb_right;
+		else
+			successor_parent->pcb_right = successor->pcb_right;
+		
+		successor->pcb_left = process->pcb_left;
+		successor->pcb_right = process->pcb_right;
+	}
+
+	phyAlloc_free((void *)process->stack_base, process->stack_size);
+	phyAlloc_free(process, sizeof(pcb_s));
+
 }
 
-void delete_process(struct pcb_s * old_process){
-	//TODO
+struct pcb_s * find_parent( struct pcb_s* node, struct pcb_s ** pcb_head )
+{
+	if (*pcb_head == NULL){
+		return NULL;
+	} else if(((*pcb_head)->pcb_right == node) || ((*pcb_head)->pcb_left == node)){
+		return (*pcb_head);
+	} else {
+		pcb_s * pcb = find_parent(node, &(*pcb_head)->pcb_left);
+		if(pcb != NULL){
+			return pcb;
+		}
+		pcb = find_parent(node, &(*pcb_head)->pcb_right);
+		if(pcb != NULL){
+			return pcb;
+		}
+		return NULL;
+	}
+
+
+
 }
+
+delete_process(struct pcb_s * pcb)
+{
+	delete_process_loop(pcb, find_parent(pcb, &pcb_root));
+}
+
 
 struct pcb_s * find_process(unsigned int pid, struct pcb_s ** pcb_head){
-	//TODO
-	return NULL;
+	if (*pcb_head == NULL){
+		return NULL;
+	} else if((*pcb_head)->pid == pid){
+		return (*pcb_head);
+	} else {
+		pcb_s * pcb = find_process(pid, &(*pcb_head)->pcb_left);
+		if(pcb != NULL){
+			return pcb;
+		}
+		pcb = find_process(pid, &(*pcb_head)->pcb_right);
+		if(pcb != NULL){
+			return pcb;
+		}
+		return NULL;
+	}
+
 }
 
 struct pcb_s * find_process_by_pid(unsigned int pid){
-	//TODO
-	return NULL;
+	return find_process(pid, &pcb_root);
+}
+
+void apply_function_loop(func_pcb f, void * args, pcb_s ** pcb_head){
+	if (*pcb_head == NULL)
+		return;
+	else
+	{
+		apply_function_loop(f, args, &(*pcb_head)->pcb_left);
+		f(*pcb_head, args);
+		apply_function_loop(f, args, &(*pcb_head)->pcb_right);
+	}
 }
 
 void apply_function(func_pcb f, void * args){
-	//TODO
+	apply_function_loop(f, args, &pcb_root);
 }
 
 #endif
@@ -262,14 +411,18 @@ void init_pcb(struct pcb_s * pcb,func_t f, void* args, unsigned int stack_size, 
 		pcb->priority= priority;
 	}
 #endif
-
+#ifdef PRIORITY_SCHED
+	pcb->key = pcb->priority * 10;
+#endif
 }
 
-void create_process_priority(func_t f, void* args, unsigned int stack_size, unsigned short priority) {
+
+pcb_s * create_process_priority(func_t f, void* args, unsigned int stack_size, unsigned short priority) {
 	//pcb_s * pcb = phyAlloc_alloc(sizeof(pcb_s));
 	pcb_s * pcb = (pcb_s * ) vMem_Alloc(sizeof(pcb_s)/4096+1);	
 	init_pcb(pcb,f,args,stack_size, priority);
 	insert_process(pcb);
+	return pcb;
 }
 
 void start_sched()
@@ -296,6 +449,7 @@ void create_process(func_t f, void* args, unsigned int stack_size) {
 // ----------------------------------------------------------------------------------------------------
 //										SWITCH
 // ----------------------------------------------------------------------------------------------------
+
 
 int should_elect(struct pcb_s * pcb){
 	if(pcb->etatP == TERMINATED) {
@@ -350,6 +504,22 @@ void elect()
 		next_pcb = elect_pcb_into_list(i);
 	}
 #elif defined OWN_SCHED
+	struct pcb_s* looking_pcb = pcb_root;
+	struct pcb_s* parent = NULL;
+	int found = 0;
+	while (found !=1 && looking_pcb != NULL){
+		while(looking_pcb->pcb_right!=NULL){
+			parent = looking_pcb;
+			looking_pcb = looking_pcb->pcb_right;
+		}
+		if(should_elect(looking_pcb)){
+			found=1;
+		}			
+		else
+			looking_pcb=parent->pcb_left;	
+	}
+	
+	next_pcb = looking_pcb;
 
 #endif
 	if(next_pcb == NULL){
